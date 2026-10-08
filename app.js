@@ -331,6 +331,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }).join('');
   }
 
+  function calculateLateMinutes(currentTimeStr, targetTimeStr) {
+    try {
+      const [ch, cm] = currentTimeStr.split(':').map(Number);
+      const [th, tm] = (targetTimeStr || '07:00').split(':').map(Number);
+      const diff = (ch * 60 + cm) - (th * 60 + tm);
+      return Math.max(1, diff);
+    } catch (_) {
+      return 10;
+    }
+  }
+
   // --- 6. Core Scan Execution ---
   function onCodeScanned(code, source = 'usb_hardware') {
     const startTime = performance.now();
@@ -369,9 +380,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusText = isLate ? 'Kesiangan' : 'Tepat Waktu';
     const points = isLate ? (parseInt(settings.poinPelanggaran, 10) || 5) : 0;
 
+    const baseJam = settings.jamMasuk || '07:00';
+    const lateMinutes = calculateLateMinutes(currentTimeStr, baseJam);
+    const tipe = isLate ? 'Pelanggaran' : 'Hadir';
+    const keterangan = isLate 
+      ? `Terlambat hadir di kelas lebih dari ${lateMinutes} menit.` 
+      : 'Hadir tepat waktu di kelas.';
+
     const studentInfo = window.storageService.lookupStudent(cleanNisn);
     const guardSession = window.storageService.getGuardSession();
+    const guardUsername = guardSession ? (guardSession.username || guardSession.guardName) : 'admin1';
     const guardName = guardSession ? guardSession.guardName : 'Penjaga';
+    const waktuInput = `${todayStr} ${currentTimeStr}`;
 
     // Play Audio
     if (isLate) {
@@ -388,10 +408,14 @@ document.addEventListener('DOMContentLoaded', () => {
       timestamp: now.getTime(),
       date: todayStr,
       time: currentTimeStr,
+      type: tipe,
       status: statusText,
+      keterangan: keterangan,
       withoutCard: false,
       points: points,
       guardName: guardName,
+      guardUsername: guardUsername,
+      waktuInput: waktuInput,
       syncedToGas: false,
       syncedToFirebase: false,
       source: source
@@ -588,8 +612,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const poinLate = isLate ? (parseInt(settings.poinPelanggaran, 10) || 5) : 0;
     const totalPoints = poinCard + poinLate;
 
+    const baseJam = settings.jamMasuk || '07:00';
+    const lateMinutes = calculateLateMinutes(currentTimeStr, baseJam);
+    const tipe = 'Pelanggaran';
+    const keterangan = isLate 
+      ? `Terlambat hadir di kelas lebih dari ${lateMinutes} menit dan tidak membawa kartu.` 
+      : 'Tidak membawa kartu presensi.';
+
     const guardSession = window.storageService.getGuardSession();
+    const guardUsername = guardSession ? (guardSession.username || guardSession.guardName) : 'admin1';
     const guardName = guardSession ? guardSession.guardName : 'Penjaga';
+    const waktuInput = `${todayStr} ${currentTimeStr}`;
 
     window.soundEngine.playLate();
 
@@ -601,10 +634,14 @@ document.addEventListener('DOMContentLoaded', () => {
       timestamp: now.getTime(),
       date: todayStr,
       time: currentTimeStr,
+      type: tipe,
       status: statusText,
+      keterangan: keterangan,
       withoutCard: true,
       points: totalPoints,
       guardName: guardName,
+      guardUsername: guardUsername,
+      waktuInput: waktuInput,
       syncedToGas: false,
       syncedToFirebase: false,
       source: 'manual_without_card'
