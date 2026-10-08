@@ -103,6 +103,15 @@ class StorageService {
     localStorage.setItem(this.KEYS.LAST_ACTIVE_DATE, today);
   }
 
+  getDeviceId() {
+    let id = localStorage.getItem('fast_scanner_device_id');
+    if (!id) {
+      id = 'dev_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 8);
+      localStorage.setItem('fast_scanner_device_id', id);
+    }
+    return id;
+  }
+
   // --- USER & ADMIN MANAGEMENT (CACHED FROM GOOGLE SHEETS) ---
   getUsers() {
     try {
@@ -113,8 +122,8 @@ class StorageService {
       }
     } catch (_) {}
     return [
-      { username: 'admin', name: 'Administrator', pin: '123456', role: 'admin', status: 'Aktif' },
-      { username: 'penjaga', name: 'Penjaga Sekolah', pin: '1234', role: 'petugas', status: 'Aktif' }
+      { username: 'admin', name: 'Administrator', pin: '123456', role: 'admin', status: 'Aktif', allowedDays: 'Semua Hari', devices: [] },
+      { username: 'penjaga', name: 'Petugas Piket', pin: '1234', role: 'petugas', status: 'Aktif', allowedDays: 'Semua Hari', devices: [] }
     ];
   }
 
@@ -133,6 +142,85 @@ class StorageService {
       String(u.pin || '').trim() === pinClean && 
       String(u.status || 'Aktif').toLowerCase() !== 'nonaktif'
     );
+  }
+
+  validateUserLogin(username, pin) {
+    const user = this.findUser(username, pin);
+    if (!user) {
+      return { success: false, reason: 'not_found', message: 'Nama Pengguna atau PIN salah. Silakan periksa kembali.' };
+    }
+
+    // 1. Validasi Hari Piket (kecuali Admin)
+    if (user.role !== 'admin' && user.allowedDays && user.allowedDays !== 'Semua Hari') {
+      const daysIndo = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+      const todayIndo = daysIndo[new Date().getDay()];
+      const rawDays = String(user.allowedDays).toLowerCase();
+
+      let isAllowed = false;
+      if (rawDays.includes('semua hari')) {
+        isAllowed = true;
+      } else if (rawDays.includes('senin - jumat') || rawDays.includes('senin s.d. jumat')) {
+        isAllowed = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'].includes(todayIndo);
+      } else if (rawDays.includes('senin - sabtu') || rawDays.includes('senin s.d. sabtu')) {
+        isAllowed = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'].includes(todayIndo);
+      } else {
+        const parts = rawDays.split(',').map(s => s.trim());
+        isAllowed = parts.some(p => p === todayIndo.toLowerCase() || todayIndo.toLowerCase().includes(p));
+      }
+
+      if (!isAllowed) {
+        return {
+          success: false,
+          reason: 'day_restricted',
+          message: `⛔ Akses Ditolak: Akun "${user.username}" hanya dijadwalkan piket pada hari ${user.allowedDays}. Hari ini adalah hari ${todayIndo}.`
+        };
+      }
+    }
+
+    // 2. Validasi Batas Maksimal 2 Perangkat
+    const deviceId = this.getDeviceId();
+    let userDevices = [];
+    if (Array.isArray(user.devices)) {
+      userDevices = [...user.devices];
+    } else if (typeof user.devices === 'string' && user.devices.trim()) {
+      userDevices = user.devices.split(',').map(s => s.trim()).filter(Boolean);
+    }
+
+    if (user.role !== 'admin') {
+      if (!userDevices.includes(deviceId)) {
+        if (userDevices.length >= 2) {
+          return {
+            success: false,
+            reason: 'device_limit',
+            message: `📱 Akses Ditolak: Akun "${user.username}" sudah dipakai di 2 perangkat berbeda. Hubungi Admin untuk reset perangkat.`
+          };
+        } else {
+          userDevices.push(deviceId);
+          user.devices = userDevices;
+          this.saveUserLocal(user);
+        }
+      }
+    } else {
+      if (!userDevices.includes(deviceId) && userDevices.length < 2) {
+        userDevices.push(deviceId);
+        user.devices = userDevices;
+        this.saveUserLocal(user);
+      }
+    }
+
+    return { success: true, user: user, newDeviceRegistered: userDevices.includes(deviceId) };
+  }
+
+  resetUserDevicesLocal(username) {
+    const list = this.getUsers();
+    const targetU = String(username || '').trim().toLowerCase();
+    const idx = list.findIndex(u => String(u.username || '').toLowerCase() === targetU);
+    if (idx >= 0) {
+      list[idx].devices = [];
+      this.setUsers(list);
+      return true;
+    }
+    return false;
   }
 
   saveUserLocal(userObj) {
