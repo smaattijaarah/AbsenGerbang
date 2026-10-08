@@ -37,14 +37,13 @@
 
       <form id="loginForm" class="login-form">
         <div class="form-group">
-          <label for="loginUsername">Nama / ID Petugas</label>
-          <input type="text" id="loginUsername" placeholder="Contoh: Pak Budi / Penjaga 1" required autofocus value="Penjaga Sekolah">
+          <label for="loginUsername">Nama Pengguna / ID</label>
+          <input type="text" id="loginUsername" placeholder="Masukkan Username / ID Petugas" required autofocus autocomplete="username">
         </div>
         
         <div class="form-group">
-          <label for="loginPin">PIN / Kata Sandi Masuk</label>
-          <input type="password" id="loginPin" placeholder="Masukkan PIN (Default: 1234)" required maxlength="20">
-          <small class="pin-hint">PIN bawaan awal: <strong>1234</strong> (Dapat diubah di pengaturan)</small>
+          <label for="loginPin">PIN / Kata Sandi</label>
+          <input type="password" id="loginPin" placeholder="Masukkan PIN / Kata Sandi" required maxlength="20" autocomplete="current-password">
         </div>
 
         <button type="submit" class="btn-login" id="btnLoginSubmit">
@@ -297,7 +296,7 @@
       <div class="modal-box-body">
         <div class="settings-tabs-row">
           <button class="setting-tab-btn active" data-tab="stRules">Jadwal & Aturan Poin</button>
-          <button class="setting-tab-btn" data-tab="stSecurity">PIN Petugas / Keamanan</button>
+          <button class="setting-tab-btn" data-tab="stSecurity">Akun User & Admin</button>
           <button class="setting-tab-btn" data-tab="stSheets">Google Sheets & GAS</button>
           <button class="setting-tab-btn" data-tab="stFirebase">Firebase Cloud</button>
           <button class="setting-tab-btn" data-tab="stMaster">Data Master Siswa</button>
@@ -330,16 +329,63 @@
           </div>
         </div>
 
-        <!-- Tab 2: Keamanan / PIN Petugas -->
+        <!-- Tab 2: Akun User & Admin (Google Sheets) -->
         <div id="stSecurity" class="tab-pane">
-          <div class="form-group">
-            <label for="cfgGuardPin">Ubah PIN Masuk Penjaga Sekolah</label>
-            <input type="password" id="cfgGuardPin" value="1234" maxlength="20">
-            <small>PIN ini digunakan saat penjaga sekolah pertama kali membuka aplikasi</small>
+          <div class="settings-help-box">
+            <p>👥 <strong>Tersimpan di Spreadsheet (Tab "Data_Pengguna"):</strong> Seluruh akun Petugas dan Admin disimpan langsung di Google Spreadsheet Anda. Data dicadangkan ke memori lokal browser agar tetap bisa login saat gerbang offline.</p>
           </div>
-          <div class="form-group">
-            <label for="cfgDefaultGuardName">Nama Petugas Default</label>
-            <input type="text" id="cfgDefaultGuardName" value="Penjaga Sekolah">
+
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <strong style="color: var(--cyan); font-size: 0.95rem;">Daftar Akun Petugas & Admin</strong>
+            <button id="btnFetchUsersSpreadsheet" type="button" class="btn-secondary-action" style="padding: 6px 12px; font-size: 0.8rem; border-color: var(--cyan); color: var(--cyan);">🔄 Tarik dari Spreadsheet</button>
+          </div>
+
+          <!-- Tabel Pengguna -->
+          <div style="max-height: 180px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 16px; background: rgba(0,0,0,0.25);">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left;">
+              <thead>
+                <tr style="background: rgba(255,255,255,0.06); color: var(--text-muted); border-bottom: 1px solid var(--border);">
+                  <th style="padding: 8px 10px;">Username</th>
+                  <th style="padding: 8px 10px;">Nama Lengkap</th>
+                  <th style="padding: 8px 10px;">Role</th>
+                  <th style="padding: 8px 10px;">Status</th>
+                  <th style="padding: 8px 10px; text-align: right;">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="userListTableBody">
+                <!-- Diisi otomatis oleh JavaScript -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Form Tambah / Edit User -->
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 8px; padding: 14px;">
+            <strong id="formUserTitle" style="display: block; margin-bottom: 10px; font-size: 0.9rem; color: var(--text-main);">➕ Tambah / Edit Akun Pengguna</strong>
+            <div class="form-grid-2">
+              <div class="form-group" style="margin-bottom: 8px;">
+                <label for="uFormUsername">Username</label>
+                <input type="text" id="uFormUsername" placeholder="Contoh: penjaga1 / admin">
+              </div>
+              <div class="form-group" style="margin-bottom: 8px;">
+                <label for="uFormName">Nama Petugas</label>
+                <input type="text" id="uFormName" placeholder="Contoh: Budi Santoso">
+              </div>
+              <div class="form-group" style="margin-bottom: 8px;">
+                <label for="uFormPin">PIN / Password Masuk</label>
+                <input type="password" id="uFormPin" placeholder="PIN minimal 4 angka / huruf">
+              </div>
+              <div class="form-group" style="margin-bottom: 8px;">
+                <label for="uFormRole">Hak Akses (Role)</label>
+                <select id="uFormRole" style="width: 100%; padding: 10px; background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--border); border-radius: 6px;">
+                  <option value="petugas">Petugas (Scan Presensi Saja)</option>
+                  <option value="admin">Administrator (Bisa Buka Pengaturan)</option>
+                </select>
+              </div>
+            </div>
+            <div style="display: flex; gap: 8px; margin-top: 10px;">
+              <button id="btnSaveUserSpreadsheet" type="button" class="btn-primary-action" style="flex: 1; padding: 9px;">💾 Simpan Akun ke Spreadsheet</button>
+              <button id="btnResetUserForm" type="button" class="btn-secondary-action" style="padding: 9px 14px;">Batal</button>
+            </div>
           </div>
         </div>
 
