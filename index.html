@@ -1,25 +1,30 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>E-Absensi Penjaga - Fast Scanner NISN</title>
-  <meta name="description" content="Aplikasi scanner kehadiran cepat khusus penjaga sekolah terintegrasi Google Sheets E-Absensi">
-  
-  <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  
-  <!-- QR Scanner Library (CDN) -->
-  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-  
-  <!-- Firebase App & Realtime Database -->
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
-  
-  <link rel="stylesheet" href="./style.css?v=3.0">
+  <title>E-Absensi SMA AT-TIJAARAH/title>
+    <meta name="description"
+      content="Aplikasi scanner kehadiran cepat khusus penjaga sekolah terintegrasi Google Sheets E-Absensi">
+
+    <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap"
+      rel="stylesheet">
+
+    <!-- QR Scanner Library (CDN) -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+    <!-- Firebase App & Realtime Database -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+    <link rel="stylesheet" href="./style.css?v=3.0">
 </head>
+
 <body>
 
   <!-- ================= 1. HALAMAN LOGIN PENJAGA SEKOLAH ================= -->
@@ -28,22 +33,24 @@
       <div class="login-header">
         <div class="login-badge-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
           </svg>
         </div>
         <h1 class="login-title">Pos Presensi Siswa</h1>
-        <p class="login-subtitle">Masuk sebagai Petugas / Penjaga Sekolah</p>
+        <p class="login-subtitle">Masuk sebagai Petugas Piket</p>
       </div>
 
       <form id="loginForm" class="login-form">
         <div class="form-group">
           <label for="loginUsername">Nama Pengguna / ID</label>
-          <input type="text" id="loginUsername" placeholder="Masukkan Username / ID Petugas" required autofocus autocomplete="username">
+          <input type="text" id="loginUsername" placeholder="Masukkan Username" required autofocus
+            autocomplete="username">
         </div>
-        
+
         <div class="form-group">
-          <label for="loginPin">PIN / Kata Sandi</label>
-          <input type="password" id="loginPin" placeholder="Masukkan PIN / Kata Sandi" required maxlength="20" autocomplete="current-password">
+          <label for="loginPin">Masukkan Password</label>
+          <input type="password" id="loginPin" placeholder="Masukkan PIN / Kata Sandi" required maxlength="20"
+            autocomplete="current-password">
         </div>
 
         <button type="submit" class="btn-login" id="btnLoginSubmit">
@@ -56,7 +63,7 @@
       </form>
 
       <div class="login-footer">
-        <span class="version-tag">E-Absensi v2.0 • Ultra Fast Kiosk</span>
+        <span class="version-tag">E-Absensi SMA AT-TIJAARAH</span>
       </div>
     </div>
   </div>
@@ -97,21 +104,23 @@
 
     <!-- Konten Utama: 2 Kolom Bersih (Kiri: Scanner, Kanan: Daftar Nama Hadir) -->
     <main class="simple-layout">
-      
+
       <!-- KOLOM KIRI: SCANNER & INPUT MANUAL TANPA KARTU -->
       <section class="scanner-section">
-        
+
         <!-- PUSAT KONTROL UTAMA: PILIHAN MASUK / KELUAR & CATAT SISWA TANPA KARTU (SIMETRIS DI TENGAH) -->
         <div class="scanner-top-center-bar">
-          
+
           <!-- SEGMENTED TOGGLE: CUKUP TULISAN MASUK & KELUAR (SIMETRIS DI TENGAH) -->
           <div class="mode-toggle-wrapper">
             <div class="mode-segmented-pill">
-              <button type="button" id="btnModeMasuk" class="mode-pill-btn active mode-masuk" title="Klik untuk Presensi Masuk">
+              <button type="button" id="btnModeMasuk" class="mode-pill-btn active mode-masuk"
+                title="Klik untuk Presensi Masuk">
                 <span class="pill-icon">🌅</span>
                 <span class="pill-label">Masuk</span>
               </button>
-              <button type="button" id="btnModePulang" class="mode-pill-btn mode-keluar" title="Klik untuk Presensi Keluar">
+              <button type="button" id="btnModePulang" class="mode-pill-btn mode-keluar"
+                title="Klik untuk Presensi Keluar">
                 <span class="pill-icon">🌇</span>
                 <span class="pill-label">Keluar</span>
               </button>
@@ -120,7 +129,8 @@
 
           <!-- TOMBOL CEPAT: SISWA TANPA KARTU (SIMETRIS DI TENGAH) -->
           <div class="without-card-wrapper">
-            <button type="button" id="btnOpenManualWithoutCard" class="btn-without-card-centered" title="Catat manual siswa yang lupa/tidak membawa kartu ID">
+            <button type="button" id="btnOpenManualWithoutCard" class="btn-without-card-centered"
+              title="Catat manual siswa yang lupa/tidak membawa kartu ID">
               <span class="btn-icon-pulse">⚠️</span>
               <span class="btn-title">Catat Siswa Tanpa Kartu</span>
             </button>
@@ -130,7 +140,7 @@
 
         <!-- Action Utama Petugas: Scanner + Tab Scanner -->
         <div class="scanner-main-box">
-          
+
           <div class="scanner-header-row">
             <div class="scanner-mode-switch">
               <button id="tabUsb" class="btn-tab active">🔌 Scanner Kabel (USB)</button>
@@ -147,7 +157,7 @@
           <div id="usbScannerView" class="scanner-display-area">
             <div class="scanner-radar"></div>
             <div class="scanner-laser"></div>
-            
+
             <div class="scanner-content">
               <div class="scanner-icon-wrap">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -158,9 +168,10 @@
               </div>
               <h2 class="scanner-instruction">Silakan Scan Kartu QR Siswa</h2>
               <p class="scanner-subtext">Arahkan barcode kartu ke scanner. Otomatis membaca langsung tanpa klik!</p>
-              
+
               <div class="quick-manual-input">
-                <input type="text" id="manualNisnInput" placeholder="Atau ketik NISN di sini lalu tekan Enter..." autocomplete="off">
+                <input type="text" id="manualNisnInput" placeholder="Atau ketik NISN di sini lalu tekan Enter..."
+                  autocomplete="off">
               </div>
             </div>
           </div>
@@ -197,7 +208,8 @@
               <span class="result-time-txt" id="resultTimeText">06:55:12</span>
             </div>
             <h3 class="result-student-name" id="resultStudentName">Ahmad Fauzi</h3>
-            <p class="result-sub-info" id="resultSubInfo">Kelas: <strong id="resultStudentClass" style="color: var(--cyan);">-</strong> • NISN: <span id="resultStudentNisn">-</span></p>
+            <p class="result-sub-info" id="resultSubInfo">Kelas: <strong id="resultStudentClass"
+                style="color: var(--cyan);">-</strong> • NISN: <span id="resultStudentNisn">-</span></p>
             <p class="result-points-alert" id="resultPointsAlert"></p>
           </div>
           <div class="speed-pill" id="resultSpeed">12ms</div>
@@ -221,7 +233,8 @@
             <span class="summary-badge late" title="Terlambat">
               ⏰ <span id="countLate">0</span>
             </span>
-            <span class="summary-badge pulang" title="Siswa Pulang" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3);">
+            <span class="summary-badge pulang" title="Siswa Pulang"
+              style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3);">
               🏠 <span id="countPulang">0</span>
             </span>
             <span class="summary-badge without-card" title="Tidak Bawa Kartu">
@@ -267,7 +280,8 @@
       <form id="formWithoutCard" class="modal-box-body">
         <div class="form-group">
           <label for="inputSearchStudent">Cari Nama Siswa atau NISN:</label>
-          <input type="text" id="inputSearchStudent" placeholder="Ketik nama atau NISN siswa..." autocomplete="off" required>
+          <input type="text" id="inputSearchStudent" placeholder="Ketik nama atau NISN siswa..." autocomplete="off"
+            required>
           <!-- Live Autocomplete dropdown -->
           <div id="studentSuggestions" class="suggestions-list hidden"></div>
         </div>
@@ -285,11 +299,15 @@
         <input type="hidden" id="selectedClass" value="">
 
         <div class="form-group" style="margin-top: 10px;">
-          <label for="selectViolationCategory" style="font-weight: 600; font-size: 0.85rem;">Kategori Pelanggaran E-Absensi:</label>
-          <select id="selectViolationCategory" style="width: 100%; padding: 9px 12px; background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--border); border-radius: 6px;">
+          <label for="selectViolationCategory" style="font-weight: 600; font-size: 0.85rem;">Kategori Pelanggaran
+            E-Absensi:</label>
+          <select id="selectViolationCategory"
+            style="width: 100%; padding: 9px 12px; background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--border); border-radius: 6px;">
             <option value="Tidak membawa ID Card">Tidak membawa ID Card</option>
-            <option value="Terlambat hadir di kelas lebih dari 10 menit.">Terlambat hadir di kelas lebih dari 10 menit.</option>
-            <option value="Terlambat hadir di kelas lebih dari 10 menit. Tidak membawa ID Card">Terlambat hadir di kelas lebih dari 10 menit. Tidak membawa ID Card</option>
+            <option value="Terlambat hadir di kelas lebih dari 10 menit.">Terlambat hadir di kelas lebih dari 10 menit.
+            </option>
+            <option value="Terlambat hadir di kelas lebih dari 10 menit. Tidak membawa ID Card">Terlambat hadir di kelas
+              lebih dari 10 menit. Tidak membawa ID Card</option>
           </select>
         </div>
 
@@ -344,9 +362,12 @@
 
         <!-- Tab 1: Jadwal & Poin -->
         <div id="stRules" class="tab-pane active">
-          <div style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap;">
-            <p style="margin: 0; font-size: 0.85rem; color: var(--text-muted);">Sesuaikan kategori poin pelanggaran dengan data sheet <code>konfigurasi_poin</code> E-Absensi:</p>
-            <button id="btnFetchPointCategories" type="button" class="btn-secondary-action" style="padding: 8px 14px; font-weight: 700; color: var(--cyan); border-color: var(--cyan);">
+          <div
+            style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+            <p style="margin: 0; font-size: 0.85rem; color: var(--text-muted);">Sesuaikan kategori poin pelanggaran
+              dengan data sheet <code>konfigurasi_poin</code> E-Absensi:</p>
+            <button id="btnFetchPointCategories" type="button" class="btn-secondary-action"
+              style="padding: 8px 14px; font-weight: 700; color: var(--cyan); border-color: var(--cyan);">
               🔄 Muat Kategori dari Sheet 'konfigurasi_poin'
             </button>
           </div>
@@ -354,22 +375,26 @@
           <div class="form-grid-2">
             <div class="form-group" style="grid-column: 1 / -1;">
               <label for="cfgKategoriTerlambat">📌 Kategori Poin untuk Siswa Terlambat:</label>
-              <select id="cfgKategoriTerlambat" style="width: 100%; padding: 10px; background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--border); border-radius: 6px;">
-                <option value="Terlambat hadir di kelas lebih dari 10 menit.">Terlambat hadir di kelas lebih dari 10 menit.</option>
+              <select id="cfgKategoriTerlambat"
+                style="width: 100%; padding: 10px; background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--border); border-radius: 6px;">
+                <option value="Terlambat hadir di kelas lebih dari 10 menit.">Terlambat hadir di kelas lebih dari 10
+                  menit.</option>
               </select>
               <small>Kategori ini otomatis digunakan saat siswa scan melewati batas jam toleransi.</small>
             </div>
 
             <div class="form-group" style="grid-column: 1 / -1;">
               <label for="cfgKategoriTanpaKartu">📌 Kategori Poin untuk Siswa Tanpa ID Card:</label>
-              <select id="cfgKategoriTanpaKartu" style="width: 100%; padding: 10px; background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--border); border-radius: 6px;">
+              <select id="cfgKategoriTanpaKartu"
+                style="width: 100%; padding: 10px; background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--border); border-radius: 6px;">
                 <option value="Tidak membawa ID Card">Tidak membawa ID Card</option>
               </select>
               <small>Kategori ini otomatis digunakan saat pencatatan manual siswa tidak membawa kartu.</small>
             </div>
 
             <!-- Bagian Presensi Masuk -->
-            <div style="grid-column: 1 / -1; margin-top: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px;">
+            <div
+              style="grid-column: 1 / -1; margin-top: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px;">
               <span style="font-size: 1.1rem;">🌅</span>
               <strong style="color: #38bdf8;">Jadwal Presensi Masuk Sekolah</strong>
             </div>
@@ -396,7 +421,8 @@
             </div>
 
             <!-- Bagian Presensi Pulang -->
-            <div style="grid-column: 1 / -1; margin-top: 15px; padding-bottom: 6px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px;">
+            <div
+              style="grid-column: 1 / -1; margin-top: 15px; padding-bottom: 6px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px;">
               <span style="font-size: 1.1rem;">🌇</span>
               <strong style="color: #818cf8;">Jadwal Presensi Pulang Sekolah (Bebas Poin)</strong>
             </div>
@@ -413,7 +439,8 @@
             </div>
 
             <!-- Aturan Tambahan & Batasan Scan -->
-            <div style="grid-column: 1 / -1; margin-top: 15px; padding-bottom: 6px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px;">
+            <div
+              style="grid-column: 1 / -1; margin-top: 15px; padding-bottom: 6px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px;">
               <span style="font-size: 1.1rem;">🔒</span>
               <strong style="color: #34d399;">Aturan Pembatasan Scan & Tanpa Kartu</strong>
             </div>
@@ -427,44 +454,63 @@
               <input type="number" id="cfgCooldownScan" value="1" min="1">
             </div>
 
-            <div class="form-group" style="grid-column: 1 / -1; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 8px; padding: 12px;">
-              <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin: 0; font-weight: 600; color: #6ee7b7;">
-                <input type="checkbox" id="cfgLockOncePerDay" checked style="width: 18px; height: 18px; cursor: pointer;">
+            <div class="form-group"
+              style="grid-column: 1 / -1; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 8px; padding: 12px;">
+              <label
+                style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin: 0; font-weight: 600; color: #6ee7b7;">
+                <input type="checkbox" id="cfgLockOncePerDay" checked
+                  style="width: 18px; height: 18px; cursor: pointer;">
                 <span>Kunci 1 Hari 1x Scan (Maksimal 1x Masuk & 1x Pulang per hari)</span>
               </label>
-              <small style="display: block; margin-top: 4px; color: var(--text-muted);">Mencegah siswa absen masuk/pulang lebih dari satu kali dalam satu hari.</small>
+              <small style="display: block; margin-top: 4px; color: var(--text-muted);">Mencegah siswa absen
+                masuk/pulang lebih dari satu kali dalam satu hari.</small>
             </div>
 
             <!-- Fitur Suara / Text-to-Speech -->
-            <div style="grid-column: 1 / -1; margin-top: 15px; padding-bottom: 6px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between;">
+            <div
+              style="grid-column: 1 / -1; margin-top: 15px; padding-bottom: 6px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between;">
               <div style="display: flex; align-items: center; gap: 8px;">
                 <span style="font-size: 1.1rem;">🗣️</span>
                 <strong style="color: #38bdf8;">Suara Panggilan Nama Siswa (Text-to-Speech)</strong>
               </div>
-              <button type="button" id="btnTestVoice" class="btn-secondary-action" style="padding: 4px 10px; font-size: 0.78rem; border-color: #38bdf8; color: #38bdf8;">
+              <button type="button" id="btnTestVoice" class="btn-secondary-action"
+                style="padding: 4px 10px; font-size: 0.78rem; border-color: #38bdf8; color: #38bdf8;">
                 🔊 Tes Suara
               </button>
             </div>
 
-            <div class="form-group" style="grid-column: 1 / -1; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 8px; padding: 12px;">
-              <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin: 0; font-weight: 600; color: #7dd3fc;">
+            <div class="form-group"
+              style="grid-column: 1 / -1; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 8px; padding: 12px;">
+              <label
+                style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin: 0; font-weight: 600; color: #7dd3fc;">
                 <input type="checkbox" id="cfgTtsEnabled" checked style="width: 18px; height: 18px; cursor: pointer;">
                 <span>Sebutkan Nama Siswa dengan Suara Bahasa Indonesia</span>
               </label>
-              <small style="display: block; margin-top: 4px; margin-bottom: 12px; color: var(--text-muted);">Saat siswa scan, aplikasi otomatis memanggil nama siswa. Gunakan kode <code>{nama}</code> untuk posisi nama siswa.</small>
+              <small style="display: block; margin-top: 4px; margin-bottom: 12px; color: var(--text-muted);">Saat siswa
+                scan, aplikasi otomatis memanggil nama siswa. Gunakan kode <code>{nama}</code> untuk posisi nama
+                siswa.</small>
 
               <div style="display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 8px;">
                 <div>
-                  <label for="cfgTtsTemplateMasuk" style="font-size: 0.8rem; color: #94a3b8; display: block; margin-bottom: 4px;">Kalimat Masuk Tepat Waktu:</label>
-                  <input type="text" id="cfgTtsTemplateMasuk" value="Terima kasih, {nama}!" placeholder="Contoh: Terima kasih, {nama}!">
+                  <label for="cfgTtsTemplateMasuk"
+                    style="font-size: 0.8rem; color: #94a3b8; display: block; margin-bottom: 4px;">Kalimat Masuk Tepat
+                    Waktu:</label>
+                  <input type="text" id="cfgTtsTemplateMasuk" value="Terima kasih, {nama}!"
+                    placeholder="Contoh: Terima kasih, {nama}!">
                 </div>
                 <div>
-                  <label for="cfgTtsTemplateTerlambat" style="font-size: 0.8rem; color: #94a3b8; display: block; margin-bottom: 4px;">Kalimat Masuk Terlambat:</label>
-                  <input type="text" id="cfgTtsTemplateTerlambat" value="Perhatian, {nama}, Anda terlambat." placeholder="Contoh: Perhatian {nama}, Anda terlambat.">
+                  <label for="cfgTtsTemplateTerlambat"
+                    style="font-size: 0.8rem; color: #94a3b8; display: block; margin-bottom: 4px;">Kalimat Masuk
+                    Terlambat:</label>
+                  <input type="text" id="cfgTtsTemplateTerlambat" value="Perhatian, {nama}, Anda terlambat."
+                    placeholder="Contoh: Perhatian {nama}, Anda terlambat.">
                 </div>
                 <div>
-                  <label for="cfgTtsTemplatePulang" style="font-size: 0.8rem; color: #94a3b8; display: block; margin-bottom: 4px;">Kalimat Presensi Pulang:</label>
-                  <input type="text" id="cfgTtsTemplatePulang" value="Terima kasih, {nama}, selamat jalan." placeholder="Contoh: Terima kasih {nama}, selamat jalan.">
+                  <label for="cfgTtsTemplatePulang"
+                    style="font-size: 0.8rem; color: #94a3b8; display: block; margin-bottom: 4px;">Kalimat Presensi
+                    Pulang:</label>
+                  <input type="text" id="cfgTtsTemplatePulang" value="Terima kasih, {nama}, selamat jalan."
+                    placeholder="Contoh: Terima kasih {nama}, selamat jalan.">
                 </div>
               </div>
             </div>
@@ -474,19 +520,25 @@
         <!-- Tab 2: Akun User & Admin (Google Sheets) -->
         <div id="stSecurity" class="tab-pane">
           <div class="settings-help-box">
-            <p>👥 <strong>Tersimpan di Spreadsheet (Tab "Data_Pengguna"):</strong> Seluruh akun Petugas dan Admin disimpan langsung di Google Spreadsheet Anda. Data dicadangkan ke memori lokal browser agar tetap bisa login saat gerbang offline.</p>
+            <p>👥 <strong>Tersimpan di Spreadsheet (Tab "Data_Pengguna"):</strong> Seluruh akun Petugas dan Admin
+              disimpan langsung di Google Spreadsheet Anda. Data dicadangkan ke memori lokal browser agar tetap bisa
+              login saat gerbang offline.</p>
           </div>
 
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
             <strong style="color: var(--cyan); font-size: 0.95rem;">Daftar Akun Petugas & Admin</strong>
-            <button id="btnFetchUsersSpreadsheet" type="button" class="btn-secondary-action" style="padding: 6px 12px; font-size: 0.8rem; border-color: var(--cyan); color: var(--cyan);">🔄 Tarik dari Spreadsheet</button>
+            <button id="btnFetchUsersSpreadsheet" type="button" class="btn-secondary-action"
+              style="padding: 6px 12px; font-size: 0.8rem; border-color: var(--cyan); color: var(--cyan);">🔄 Tarik dari
+              Spreadsheet</button>
           </div>
 
           <!-- Tabel Pengguna -->
-          <div style="max-height: 180px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 16px; background: rgba(0,0,0,0.25);">
+          <div
+            style="max-height: 180px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 16px; background: rgba(0,0,0,0.25);">
             <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left;">
               <thead>
-                <tr style="background: rgba(255,255,255,0.06); color: var(--text-muted); border-bottom: 1px solid var(--border);">
+                <tr
+                  style="background: rgba(255,255,255,0.06); color: var(--text-muted); border-bottom: 1px solid var(--border);">
                   <th style="padding: 8px 10px;">Username</th>
                   <th style="padding: 8px 10px;">Nama Lengkap</th>
                   <th style="padding: 8px 10px;">Role</th>
@@ -501,8 +553,11 @@
           </div>
 
           <!-- Form Tambah / Edit User -->
-          <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 8px; padding: 14px;">
-            <strong id="formUserTitle" style="display: block; margin-bottom: 10px; font-size: 0.9rem; color: var(--text-main);">➕ Tambah / Edit Akun Pengguna</strong>
+          <div
+            style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 8px; padding: 14px;">
+            <strong id="formUserTitle"
+              style="display: block; margin-bottom: 10px; font-size: 0.9rem; color: var(--text-main);">➕ Tambah / Edit
+              Akun Pengguna</strong>
             <div class="form-grid-2">
               <div class="form-group" style="margin-bottom: 8px;">
                 <label for="uFormUsername">Username</label>
@@ -518,15 +573,18 @@
               </div>
               <div class="form-group" style="margin-bottom: 8px;">
                 <label for="uFormRole">Hak Akses (Role)</label>
-                <select id="uFormRole" style="width: 100%; padding: 10px; background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--border); border-radius: 6px;">
+                <select id="uFormRole"
+                  style="width: 100%; padding: 10px; background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--border); border-radius: 6px;">
                   <option value="petugas">Petugas (Scan Presensi Saja)</option>
                   <option value="admin">Administrator (Bisa Buka Pengaturan)</option>
                 </select>
               </div>
             </div>
             <div style="display: flex; gap: 8px; margin-top: 10px;">
-              <button id="btnSaveUserSpreadsheet" type="button" class="btn-primary-action" style="flex: 1; padding: 9px;">💾 Simpan Akun ke Spreadsheet</button>
-              <button id="btnResetUserForm" type="button" class="btn-secondary-action" style="padding: 9px 14px;">Batal</button>
+              <button id="btnSaveUserSpreadsheet" type="button" class="btn-primary-action"
+                style="flex: 1; padding: 9px;">💾 Simpan Akun ke Spreadsheet</button>
+              <button id="btnResetUserForm" type="button" class="btn-secondary-action"
+                style="padding: 9px 14px;">Batal</button>
             </div>
           </div>
         </div>
@@ -534,34 +592,48 @@
         <!-- Tab 3: Google Sheets & E-Absensi -->
         <div id="stSheets" class="tab-pane">
           <div class="settings-help-box">
-            <p>💡 <strong>Deployment Terpisah (Standalone):</strong> Web App Google Apps Script cukup di-deploy <strong>1 kali saja</strong> secara mandiri di <a href="https://script.google.com" target="_blank" style="color: var(--cyan); text-decoration: underline;">script.google.com</a>. Setelah itu, Anda <strong>hanya perlu memasukkan ID Spreadsheet E-Absensi</strong> (atau tempel link spreadsheet) kapan pun berganti file presensi!</p>
+            <p>💡 <strong>Deployment Terpisah (Standalone):</strong> Web App Google Apps Script cukup di-deploy
+              <strong>1 kali saja</strong> secara mandiri di <a href="https://script.google.com" target="_blank"
+                style="color: var(--cyan); text-decoration: underline;">script.google.com</a>. Setelah itu, Anda
+              <strong>hanya perlu memasukkan ID Spreadsheet E-Absensi</strong> (atau tempel link spreadsheet) kapan pun
+              berganti file presensi!</p>
           </div>
           <div class="form-group">
-            <label for="cfgSpreadsheetId">ID Spreadsheet E-Absensi Target <span style="color: var(--cyan); font-weight: 600;">(Wajib)</span></label>
-            <input type="text" id="cfgSpreadsheetId" placeholder="Contoh: 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms atau paste link spreadsheet">
-            <small>Salin ID dari URL Google Spreadsheet Anda (antara teks <code>/d/</code> dan <code>/edit</code>) atau tempel link URL lengkapnya.</small>
+            <label for="cfgSpreadsheetId">ID Spreadsheet E-Absensi Target <span
+                style="color: var(--cyan); font-weight: 600;">(Wajib)</span></label>
+            <input type="text" id="cfgSpreadsheetId"
+              placeholder="Contoh: 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms atau paste link spreadsheet">
+            <small>Salin ID dari URL Google Spreadsheet Anda (antara teks <code>/d/</code> dan <code>/edit</code>) atau
+              tempel link URL lengkapnya.</small>
           </div>
           <div class="form-group">
             <label for="cfgSheetName">Nama Tab Sheet Tujuan (E-Absensi)</label>
             <input type="text" id="cfgSheetName" value="catatan_poin" placeholder="catatan_poin">
-            <small>Data pelanggaran dicatat ke <code>catatan_poin</code> (dan otomatis terhubung ke <code>absensi</code>).</small>
+            <small>Data pelanggaran dicatat ke <code>catatan_poin</code> (dan otomatis terhubung ke
+              <code>absensi</code>).</small>
           </div>
           <div class="form-group">
             <label for="cfgGasUrl">URL Web App Google Apps Script Terpusat</label>
             <input type="text" id="cfgGasUrl" placeholder="https://script.google.com/macros/s/.../exec">
-            <small>URL hasil Deploy Standalone Web App di script.google.com (cukup diisi sekali untuk semua file spreadsheet).</small>
+            <small>URL hasil Deploy Standalone Web App di script.google.com (cukup diisi sekali untuk semua file
+              spreadsheet).</small>
           </div>
           <div style="display: flex; gap: 10px; margin-top: 12px;">
-            <button id="btnTestGas" type="button" class="btn-secondary-action" style="flex: 1;">🧪 Test Koneksi E-Absensi</button>
-            <button id="btnSettingsManualSync" type="button" class="btn-secondary-action" style="flex: 1; border-color: var(--cyan); color: var(--cyan);">🔄 Sinkronkan Antrean Sekarang</button>
+            <button id="btnTestGas" type="button" class="btn-secondary-action" style="flex: 1;">🧪 Test Koneksi
+              E-Absensi</button>
+            <button id="btnSettingsManualSync" type="button" class="btn-secondary-action"
+              style="flex: 1; border-color: var(--cyan); color: var(--cyan);">🔄 Sinkronkan Antrean Sekarang</button>
           </div>
-          <button id="btnSyncMasterFromSheets" type="button" class="btn-primary-action" style="width: 100%; margin-top: 10px; padding: 11px; font-weight: 700; background: linear-gradient(135deg, #0284c7, #0f766e);">
+          <button id="btnSyncMasterFromSheets" type="button" class="btn-primary-action"
+            style="width: 100%; margin-top: 10px; padding: 11px; font-weight: 700; background: linear-gradient(135deg, #0284c7, #0f766e);">
             📥 Tarik Data Siswa & Kategori Poin dari Spreadsheet
           </button>
-          <button id="btnInitSheets" type="button" class="btn-secondary-action" style="width: 100%; margin-top: 10px; padding: 11px; font-weight: 700; border-color: #38bdf8; color: #38bdf8;">
+          <button id="btnInitSheets" type="button" class="btn-secondary-action"
+            style="width: 100%; margin-top: 10px; padding: 11px; font-weight: 700; border-color: #38bdf8; color: #38bdf8;">
             🛠️ Buat Sheet Pengaturan & Data Pengguna di Spreadsheet
           </button>
-          <button id="btnCopyQuickLink" type="button" class="btn-secondary-action" style="width: 100%; margin-top: 10px; padding: 10px; font-weight: 600;">
+          <button id="btnCopyQuickLink" type="button" class="btn-secondary-action"
+            style="width: 100%; margin-top: 10px; padding: 10px; font-weight: 600;">
             🔗 Salin Link Scanner Siap Pakai (Untuk Dibuka di Browser/HP Lain)
           </button>
         </div>
@@ -585,9 +657,11 @@
 
         <!-- Tab 5: Master Data Siswa -->
         <div id="stMaster" class="tab-pane">
-          <p class="tab-desc">Simpan data siswa agar saat scan kartu, Nama dan Kelas siswa langsung otomatis muncul seketika di layar.</p>
-          
-          <button id="btnFetchStudentsSpreadsheet" type="button" class="btn-primary-action" style="width: 100%; margin-bottom: 16px; padding: 12px; font-weight: 700; background: linear-gradient(135deg, #0284c7, #0f766e);">
+          <p class="tab-desc">Simpan data siswa agar saat scan kartu, Nama dan Kelas siswa langsung otomatis muncul
+            seketika di layar.</p>
+
+          <button id="btnFetchStudentsSpreadsheet" type="button" class="btn-primary-action"
+            style="width: 100%; margin-bottom: 16px; padding: 12px; font-weight: 700; background: linear-gradient(135deg, #0284c7, #0f766e);">
             📥 Tarik Data Siswa dari Spreadsheet (Otomatis)
           </button>
 
@@ -597,7 +671,8 @@
           </div>
           <div class="form-group">
             <label>Atau Tempel (Paste) Teks CSV Siswa di Sini:</label>
-            <textarea id="cfgCsvMasterText" rows="4" placeholder="NISN,Nama,Kelas&#10;0104020357,ASEP SAEPURROHMAN,X 1&#10;0051234568,Siti Nurhaliza,XII MIPA 2"></textarea>
+            <textarea id="cfgCsvMasterText" rows="4"
+              placeholder="NISN,Nama,Kelas&#10;0104020357,ASEP SAEPURROHMAN,X 1&#10;0051234568,Siti Nurhaliza,XII MIPA 2"></textarea>
           </div>
           <div class="master-bar">
             <span>Siswa Tersimpan: <strong id="masterCount">0</strong> data</span>
@@ -624,4 +699,5 @@
   <script src="./scanner.js?v=3.0"></script>
   <script src="./app.js?v=3.0"></script>
 </body>
+
 </html>
