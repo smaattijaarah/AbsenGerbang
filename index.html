@@ -255,10 +255,19 @@
         <input type="hidden" id="selectedName" value="">
         <input type="hidden" id="selectedClass" value="">
 
+        <div class="form-group" style="margin-top: 10px;">
+          <label for="selectViolationCategory" style="font-weight: 600; font-size: 0.85rem;">Kategori Pelanggaran E-Absensi:</label>
+          <select id="selectViolationCategory" style="width: 100%; padding: 9px 12px; background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--border); border-radius: 6px;">
+            <option value="Tidak membawa ID Card">Tidak membawa ID Card</option>
+            <option value="Terlambat hadir di kelas lebih dari 10 menit.">Terlambat hadir di kelas lebih dari 10 menit.</option>
+            <option value="Terlambat hadir di kelas lebih dari 10 menit. Tidak membawa ID Card">Terlambat hadir di kelas lebih dari 10 menit. Tidak membawa ID Card</option>
+          </select>
+        </div>
+
         <!-- Detail Poin Pelanggaran -->
         <div class="violation-summary-box">
           <div class="violation-row">
-            <span>Pelanggaran: <strong>Tidak Membawa Kartu ID</strong></span>
+            <span>Pelanggaran: <strong>Tidak membawa ID Card</strong></span>
             <span class="point-tag warning" id="previewPoinTanpaKartu">+5 Poin</span>
           </div>
           <div class="violation-row" id="rowLateViolation">
