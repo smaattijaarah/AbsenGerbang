@@ -363,6 +363,111 @@ body {
   gap: 16px;
 }
 
+/* ================= PILIHAN MODE PRESENSI (MASUK VS PULANG) ================= */
+.presence-mode-selector {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.presence-mode-btn {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  background: rgba(15, 23, 42, 0.7);
+  border: 2px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: left;
+  user-select: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.presence-mode-btn:hover {
+  background: rgba(30, 41, 59, 0.9);
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.presence-mode-btn .mode-icon {
+  font-size: 2rem;
+  line-height: 1;
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5));
+  transition: transform 0.25s ease;
+}
+
+.presence-mode-btn:hover .mode-icon {
+  transform: scale(1.15);
+}
+
+.presence-mode-btn .mode-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+}
+
+.mode-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mode-title-row strong {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: -0.01em;
+}
+
+.presence-mode-btn small {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+}
+
+.mode-status-pill {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+}
+
+/* Mode Masuk Active */
+.presence-mode-btn.mode-masuk.active {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.18), rgba(6, 95, 70, 0.3));
+  border-color: #10b981;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.25), inset 0 0 12px rgba(16, 185, 129, 0.1);
+}
+.presence-mode-btn.mode-masuk.active .mode-title-row strong {
+  color: #34d399;
+}
+.presence-mode-btn.mode-masuk.active .mode-status-pill {
+  background: #10b981;
+  color: #064e3b;
+}
+
+/* Mode Pulang Active */
+.presence-mode-btn.mode-pulang.active {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.22), rgba(67, 56, 202, 0.32));
+  border-color: #818cf8;
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.28), inset 0 0 12px rgba(99, 102, 241, 0.12);
+}
+.presence-mode-btn.mode-pulang.active .mode-title-row strong {
+  color: #a5b4fc;
+}
+.presence-mode-btn.mode-pulang.active .mode-status-pill {
+  background: #818cf8;
+  color: #1e1b4b;
+}
+
 .scanner-main-box {
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -623,6 +728,11 @@ body {
 .badge-tag.badge-warning {
   background: rgba(239, 68, 68, 0.2);
   color: #f87171;
+}
+.badge-tag.badge-class {
+  background: rgba(14, 165, 233, 0.2);
+  color: #38bdf8;
+  border: 1px solid rgba(14, 165, 233, 0.45);
 }
 
 .result-time-txt {
