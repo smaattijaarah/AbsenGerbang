@@ -73,23 +73,24 @@
         <div class="date-badge" id="liveDate">Senin, 01 Januari 2026</div>
       </div>
 
-      <div class="header-center">
+      <div class="header-center" id="headerCenterWrap">
+        <span class="mobile-date-text" id="liveDateMobile">Senin, 01 Januari 2026</span>
         <span id="liveTime" class="header-clock">00:00:00</span>
       </div>
 
       <div class="header-right">
         <!-- Status Indikator Sederhana -->
         <span id="headerSyncStatus" class="status-indicator synced" title="Status Sinkronisasi ke Spreadsheet">
-          ☁️ Sheets: Siap (<span id="pendingSyncCount">0</span>)
+          ☁️ <span class="sync-label">Sheets: Siap</span> (<span id="pendingSyncCount">0</span>)
         </span>
         <button id="btnSoundToggle" class="btn-header-action" title="Toggle Suara Beep">
           <span id="soundStatusEmoji">🔊</span>
         </button>
-        <button id="btnOpenSettings" class="btn-header-action" title="Pengaturan Sistem">
+        <button id="btnOpenSettings" class="btn-header-action hidden" title="Pengaturan Sistem (Khusus Admin)">
           ⚙️
         </button>
-        <button id="btnLogout" class="btn-header-action btn-logout-action" title="Keluar / Ganti Penjaga">
-          🚪 Keluar
+        <button id="btnLogout" class="btn-header-action btn-logout-action" title="Keluar / Ganti Petugas">
+          🚪 <span class="btn-logout-label">Keluar</span>
         </button>
       </div>
     </header>
