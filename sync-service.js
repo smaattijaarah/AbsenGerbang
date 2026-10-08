@@ -544,6 +544,7 @@ class SyncService {
     const rawId = settings.spreadsheetId || '';
     const cleanId = rawId.match(/\/d\/([a-zA-Z0-9_-]+)/) ? rawId.match(/\/d\/([a-zA-Z0-9_-]+)/)[1] : rawId.trim();
 
+    // 1. Coba via POST
     try {
       const payload = {
         action: 'init_sheets',
@@ -551,6 +552,27 @@ class SyncService {
       };
       const blob = new Blob([JSON.stringify(payload)], { type: 'text/plain' });
       const res = await fetch(cleanUrl, { method: 'POST', body: blob, redirect: 'follow' });
+      const data = await res.json();
+      if (data.status === 'success') {
+        return { success: true, message: data.message };
+      }
+      if (data.message && data.message.includes('Action tidak dikenal')) {
+        return {
+          success: false,
+          needsDeploy: true,
+          message: 'Web App Google Apps Script masih menjalankan kode versi lama. Buka script.google.com > ganti kode dengan e-absensi.gs terbaru > Simpan > Deploy Versi Baru (New Version).'
+        };
+      }
+      return { success: false, message: data.message || 'Gagal membuat sheet di spreadsheet.' };
+    } catch (_) {}
+
+    // 2. Coba fallback via GET
+    try {
+      const getUrl = new URL(cleanUrl);
+      getUrl.searchParams.set('action', 'init_sheets');
+      if (cleanId) getUrl.searchParams.set('spreadsheetId', cleanId);
+      getUrl.searchParams.set('_t', Date.now());
+      const res = await fetch(getUrl.toString(), { method: 'GET', redirect: 'follow', cache: 'no-cache' });
       const data = await res.json();
       if (data.status === 'success') {
         return { success: true, message: data.message };
