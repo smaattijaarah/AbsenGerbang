@@ -18,7 +18,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
   
-  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./style.css?v=2.2">
 </head>
 <body>
 
@@ -154,7 +154,7 @@
             <span>•</span>
             <span>Toleransi: <strong id="displayToleransi">07:15</strong> WIB</span>
             <span>•</span>
-            <span>Poin Kesiangan: <strong id="displayPoin">5</strong></span>
+            <span>Poin Terlambat: <strong id="displayPoin">5</strong></span>
             <span>•</span>
             <span>Poin Tanpa Kartu: <strong id="displayPoinTanpaKartu">5</strong></span>
           </div>
@@ -166,11 +166,12 @@
           <div class="result-details">
             <div class="result-badge-row">
               <span class="badge-tag" id="resultStatusTag">TEPAT WAKTU</span>
+              <span class="badge-tag badge-class" id="resultClassTag">Kelas: -</span>
               <span class="badge-tag badge-warning hidden" id="resultCardStatusTag">TANPA KARTU</span>
               <span class="result-time-txt" id="resultTimeText">06:55:12</span>
             </div>
             <h3 class="result-student-name" id="resultStudentName">Ahmad Fauzi</h3>
-            <p class="result-sub-info" id="resultSubInfo">NISN: 0051234567 • Kelas: XII MIPA 1</p>
+            <p class="result-sub-info" id="resultSubInfo">Kelas: <strong id="resultStudentClass" style="color: var(--cyan);">-</strong> • NISN: <span id="resultStudentNisn">-</span></p>
             <p class="result-points-alert" id="resultPointsAlert"></p>
           </div>
           <div class="speed-pill" id="resultSpeed">12ms</div>
@@ -186,12 +187,12 @@
             <span class="count-bubble" id="countTotal">0</span>
           </div>
 
-          <!-- Ringkasan Singkat: Hadir, Kesiangan, Tanpa Kartu -->
+          <!-- Ringkasan Singkat: Hadir, Terlambat, Tanpa Kartu -->
           <div class="mini-summary">
             <span class="summary-badge ontime" title="Hadir Tepat Waktu">
               ✅ <span id="countOnTime">0</span>
             </span>
-            <span class="summary-badge late" title="Kesiangan">
+            <span class="summary-badge late" title="Terlambat">
               ⏰ <span id="countLate">0</span>
             </span>
             <span class="summary-badge without-card" title="Tidak Bawa Kartu">
@@ -435,14 +436,19 @@
 
         <!-- Tab 5: Master Data Siswa -->
         <div id="stMaster" class="tab-pane">
-          <p class="tab-desc">Simpan data siswa agar saat scan / input manual nama siswa langsung otomatis muncul.</p>
+          <p class="tab-desc">Simpan data siswa agar saat scan kartu, Nama dan Kelas siswa langsung otomatis muncul seketika di layar.</p>
+          
+          <button id="btnFetchStudentsSpreadsheet" type="button" class="btn-primary-action" style="width: 100%; margin-bottom: 16px; padding: 12px; font-weight: 700; background: linear-gradient(135deg, #0284c7, #0f766e);">
+            📥 Tarik Data Siswa dari Spreadsheet (Otomatis)
+          </button>
+
           <div class="form-group">
-            <label>Upload File CSV Siswa (Format: NISN, Nama, Kelas):</label>
+            <label>Atau Upload File CSV Siswa (Format: NISN, Nama, Kelas):</label>
             <input type="file" id="cfgCsvMasterInput" accept=".csv">
           </div>
           <div class="form-group">
-            <label>Atau Paste Data Siswa CSV di Sini:</label>
-            <textarea id="cfgCsvMasterText" rows="5" placeholder="NISN,Nama,Kelas&#10;0051234567,Ahmad Fauzi,XII MIPA 1&#10;0051234568,Siti Nurhaliza,XII MIPA 2"></textarea>
+            <label>Atau Tempel (Paste) Teks CSV Siswa di Sini:</label>
+            <textarea id="cfgCsvMasterText" rows="4" placeholder="NISN,Nama,Kelas&#10;0104020357,ASEP SAEPURROHMAN,X 1&#10;0051234568,Siti Nurhaliza,XII MIPA 2"></textarea>
           </div>
           <div class="master-bar">
             <span>Siswa Tersimpan: <strong id="masterCount">0</strong> data</span>
@@ -462,11 +468,11 @@
   <div id="toastContainer" class="toast-container"></div>
 
   <!-- Scripts -->
-  <script src="./audio.js"></script>
-  <script src="./storage.js"></script>
-  <script src="./firebase-service.js"></script>
-  <script src="./sync-service.js"></script>
-  <script src="./scanner.js"></script>
-  <script src="./app.js"></script>
+  <script src="./audio.js?v=2.2"></script>
+  <script src="./storage.js?v=2.2"></script>
+  <script src="./firebase-service.js?v=2.2"></script>
+  <script src="./sync-service.js?v=2.2"></script>
+  <script src="./scanner.js?v=2.2"></script>
+  <script src="./app.js?v=2.2"></script>
 </body>
 </html>
