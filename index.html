@@ -434,6 +434,25 @@
               </label>
               <small style="display: block; margin-top: 4px; color: var(--text-muted);">Mencegah siswa absen masuk/pulang lebih dari satu kali dalam satu hari.</small>
             </div>
+
+            <!-- Fitur Suara / Text-to-Speech -->
+            <div style="grid-column: 1 / -1; margin-top: 15px; padding-bottom: 6px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 1.1rem;">🗣️</span>
+                <strong style="color: #38bdf8;">Suara Panggilan Nama Siswa (Text-to-Speech)</strong>
+              </div>
+              <button type="button" id="btnTestVoice" class="btn-secondary-action" style="padding: 4px 10px; font-size: 0.78rem; border-color: #38bdf8; color: #38bdf8;">
+                🔊 Tes Suara
+              </button>
+            </div>
+
+            <div class="form-group" style="grid-column: 1 / -1; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 8px; padding: 12px;">
+              <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin: 0; font-weight: 600; color: #7dd3fc;">
+                <input type="checkbox" id="cfgTtsEnabled" checked style="width: 18px; height: 18px; cursor: pointer;">
+                <span>Sebutkan Nama Siswa dengan Suara Bahasa Indonesia</span>
+              </label>
+              <small style="display: block; margin-top: 4px; color: var(--text-muted);">Saat siswa scan, aplikasi otomatis memanggil nama siswa dengan suara ramah (contoh: <em>"Terima kasih, Ahmad!"</em> atau <em>"Perhatian Ahmad, Anda terlambat."</em>).</small>
+            </div>
           </div>
         </div>
 
