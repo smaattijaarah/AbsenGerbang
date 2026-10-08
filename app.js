@@ -264,13 +264,18 @@ document.addEventListener('DOMContentLoaded', () => {
     let total = records.length;
     let onTime = 0;
     let late = 0;
+    let pulang = 0;
     let withoutCard = 0;
 
     records.forEach(r => {
       if (r.withoutCard) withoutCard++;
       if (r.status === 'Tepat Waktu') onTime++;
       else if (r.status === 'Terlambat' || r.status === 'Kesiangan') late++;
+      else if (r.status === 'Pulang' || r.type === 'Pulang') pulang++;
     });
+
+    const countPulangEl = document.getElementById('countPulang');
+    if (countPulangEl) countPulangEl.textContent = pulang;
 
     countTotalEl.textContent = total;
     countOnTimeEl.textContent = onTime;
@@ -347,6 +352,77 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- 6. Core Scan Execution ---
+
+  // --- Presence Mode Switching (Masuk vs Pulang) ---
+  const btnModeMasuk = document.getElementById('btnModeMasuk');
+  const btnModePulang = document.getElementById('btnModePulang');
+  const pillModeMasuk = document.getElementById('pillModeMasuk');
+  const pillModePulang = document.getElementById('pillModePulang');
+  const subModeMasuk = document.getElementById('subModeMasuk');
+  const subModePulang = document.getElementById('subModePulang');
+
+  function updateScanModeUI() {
+    const mode = window.storageService.getScanMode();
+    const s = window.storageService.getSettings();
+
+    if (btnModeMasuk && btnModePulang) {
+      if (mode === 'pulang') {
+        btnModeMasuk.classList.remove('active');
+        btnModePulang.classList.add('active');
+        if (pillModeMasuk) { pillModeMasuk.className = 'mode-status-pill off'; pillModeMasuk.textContent = 'Non-Aktif'; }
+        if (pillModePulang) { pillModePulang.className = 'mode-status-pill on'; pillModePulang.textContent = 'Aktif (0 Poin)'; }
+      } else {
+        btnModeMasuk.classList.add('active');
+        btnModePulang.classList.remove('active');
+        if (pillModeMasuk) { pillModeMasuk.className = 'mode-status-pill on'; pillModeMasuk.textContent = 'Aktif'; }
+        if (pillModePulang) { pillModePulang.className = 'mode-status-pill off'; pillModePulang.textContent = 'Bebas Poin'; }
+      }
+    }
+
+    if (subModeMasuk) {
+      subModeMasuk.textContent = `Buka: ${s.jamMasukMulai || '06:00'} • Batas: ${s.jamToleransi || '06:40'} • Tutup: ${s.jamMasukSelesai || '08:00'}`;
+    }
+    if (subModePulang) {
+      subModePulang.textContent = `Mulai: ${s.jamPulangMulai || '15:00'} • Tutup: ${s.jamPulangSelesai || '18:00'} (0 Poin)`;
+    }
+
+    // Rules footer update
+    const rfItem1 = document.getElementById('rfItem1');
+    const rfItem2 = document.getElementById('rfItem2');
+    const rfItem3 = document.getElementById('rfItem3');
+    const rfItem4 = document.getElementById('rfItem4');
+
+    if (rfItem1 && rfItem2 && rfItem3 && rfItem4) {
+      if (mode === 'pulang') {
+        rfItem1.innerHTML = `Buka Pulang: <strong>${s.jamPulangMulai || '15:00'}</strong>`;
+        rfItem2.innerHTML = `Tutup: <strong>${s.jamPulangSelesai || '18:00'}</strong>`;
+        rfItem3.innerHTML = `Aturan Poin: <strong>0 Poin</strong>`;
+        rfItem4.innerHTML = `Status: <strong style="color: #818cf8;">Bebas Sanksi</strong>`;
+      } else {
+        rfItem1.innerHTML = `Buka Masuk: <strong>${s.jamMasukMulai || '06:00'}</strong>`;
+        rfItem2.innerHTML = `Toleransi: <strong>${s.jamToleransi || '06:40'}</strong>`;
+        rfItem3.innerHTML = `Tutup: <strong>${s.jamMasukSelesai || '08:00'}</strong>`;
+        rfItem4.innerHTML = `Terlambat: <strong>${s.poinPelanggaran || 1}</strong> Poin`;
+      }
+    }
+  }
+
+  if (btnModeMasuk) {
+    btnModeMasuk.addEventListener('click', () => {
+      window.storageService.saveScanMode('masuk');
+      updateScanModeUI();
+      showToast('🌅 Mode beralih ke: Presensi Masuk', 'info');
+    });
+  }
+
+  if (btnModePulang) {
+    btnModePulang.addEventListener('click', () => {
+      window.storageService.saveScanMode('pulang');
+      updateScanModeUI();
+      showToast('🌇 Mode beralih ke: Presensi Pulang (Bebas Poin)', 'info');
+    });
+  }
+
   function onCodeScanned(code, source = 'usb_hardware') {
     const startTime = performance.now();
     const cleanNisn = String(code || '').trim();
@@ -356,44 +432,194 @@ document.addEventListener('DOMContentLoaded', () => {
     const records = window.storageService.getTodayRecords();
     const now = new Date();
     const currentTimeStr = getCurrentTimeString();
+    const curHM = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
     const todayStr = window.storageService.getTodayString();
-
-    // Prevent duplicate scan within cooldown window
-    const cooldownMs = (parseInt(settings.cooldownMinutes, 10) || 30) * 60 * 1000;
-    const existing = records.find(r => r.nisn === cleanNisn && (now.getTime() - r.timestamp < cooldownMs));
-
-    if (existing) {
-      window.soundEngine.playDuplicate();
-      showResultBanner({
-        nisn: cleanNisn,
-        name: existing.name,
-        class: existing.class,
-        status: 'Sudah Absen',
-        type: 'duplicate',
-        withoutCard: existing.withoutCard,
-        meta: `Sudah scan kehadiran pukul ${existing.time}`,
-        pointsText: '',
-        durationMs: Math.round(performance.now() - startTime)
-      });
-      return;
-    }
-
-    // Determine On-Time vs Late
-    const toleransiLimit = (settings.jamToleransi || '07:15') + ':00';
-    const isLate = currentTimeStr > toleransiLimit;
-    const statusText = isLate ? 'Terlambat' : 'Tepat Waktu';
-    const points = isLate ? (parseInt(settings.poinPelanggaran, 10) || 5) : 0;
-
-    const tipe = isLate ? 'Pelanggaran' : 'Hadir';
-    const keterangan = isLate 
-      ? (settings.kategoriTerlambat || 'Terlambat hadir di kelas lebih dari 10 menit.') 
-      : 'Tepat Waktu';
+    const mode = window.storageService.getScanMode(); // 'masuk' or 'pulang'
 
     const studentInfo = window.storageService.lookupStudent(cleanNisn);
     const guardSession = window.storageService.getGuardSession();
     const guardUsername = guardSession ? (guardSession.username || guardSession.guardName) : 'admin1';
     const guardName = guardSession ? guardSession.guardName : 'Penjaga';
     const waktuInput = `${todayStr} ${currentTimeStr}`;
+
+    // ==========================================
+    // 1. VALIDASI JADWAL & STATUS: MODE PULANG
+    // ==========================================
+    if (mode === 'pulang') {
+      const jamBukaPulang = settings.jamPulangMulai || '15:00';
+      const jamTutupPulang = settings.jamPulangSelesai || '18:00';
+
+      // Cek sebelum jam buka pulang
+      if (curHM < jamBukaPulang) {
+        window.soundEngine.playDuplicate();
+        showResultBanner({
+          nisn: cleanNisn,
+          name: studentInfo.name,
+          class: studentInfo.class,
+          status: 'Belum Dibuka',
+          type: 'late',
+          withoutCard: false,
+          meta: `Presensi Pulang baru dibuka pukul ${jamBukaPulang} WIB!`,
+          pointsText: 'Belum waktunya pulang',
+          durationMs: Math.round(performance.now() - startTime)
+        });
+        return;
+      }
+
+      // Cek setelah jam tutup pulang
+      if (curHM > jamTutupPulang) {
+        window.soundEngine.playDuplicate();
+        showResultBanner({
+          nisn: cleanNisn,
+          name: studentInfo.name,
+          class: studentInfo.class,
+          status: 'Presensi Selesai',
+          type: 'late',
+          withoutCard: false,
+          meta: `Presensi Pulang telah berakhir pukul ${jamTutupPulang} WIB.`,
+          pointsText: 'Jadwal pulang telah lewat',
+          durationMs: Math.round(performance.now() - startTime)
+        });
+        return;
+      }
+
+      // Cegah scan pulang 2x sehari (1 Hari 1x Pulang)
+      if (settings.lockOncePerDay !== false) {
+        const alreadyPulang = records.find(r => r.nisn === cleanNisn && (r.mode === 'pulang' || r.type === 'Pulang'));
+        if (alreadyPulang) {
+          window.soundEngine.playDuplicate();
+          showResultBanner({
+            nisn: cleanNisn,
+            name: alreadyPulang.name,
+            class: alreadyPulang.class,
+            status: 'Sudah Pulang',
+            type: 'duplicate',
+            withoutCard: alreadyPulang.withoutCard,
+            meta: `Siswa sudah presensi pulang hari ini pukul ${alreadyPulang.time} WIB`,
+            pointsText: '',
+            durationMs: Math.round(performance.now() - startTime)
+          });
+          return;
+        }
+      }
+
+      // Pulang Berhasil: Selalu Tepat & 0 Poin
+      window.soundEngine.playPulang();
+
+      const newRecord = {
+        id: `scan_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        nisn: cleanNisn,
+        name: studentInfo.name,
+        class: studentInfo.class,
+        timestamp: now.getTime(),
+        date: todayStr,
+        time: currentTimeStr,
+        mode: 'pulang',
+        type: 'Pulang',
+        status: 'Pulang',
+        keterangan: 'Presensi Pulang Sekolah',
+        withoutCard: false,
+        points: 0,
+        guardName: guardName,
+        guardUsername: guardUsername,
+        waktuInput: waktuInput,
+        syncedToGas: false,
+        syncedToFirebase: false,
+        source: source
+      };
+
+      window.storageService.addRecord(newRecord);
+      const execTimeMs = Math.round(performance.now() - startTime);
+
+      showResultBanner({
+        nisn: cleanNisn,
+        name: studentInfo.name,
+        class: studentInfo.class,
+        status: 'Presensi Pulang',
+        type: 'ontime',
+        withoutCard: false,
+        meta: `Pukul ${currentTimeStr} • Bebas Poin (0 Poin)`,
+        pointsText: '🏠 Selamat Pulang!',
+        durationMs: execTimeMs
+      });
+
+      renderAttendanceUI(searchHistoryInput.value);
+      window.firebaseService.saveScan(newRecord).then(ok => {
+        if (ok) window.storageService.updateRecordSyncStatus(newRecord.id, 'firebase', true);
+      });
+      window.syncService.syncPendingToGas();
+      return;
+    }
+
+    // ==========================================
+    // 2. VALIDASI JADWAL & STATUS: MODE MASUK
+    // ==========================================
+    const jamBukaMasuk = settings.jamMasukMulai || '06:00';
+    const jamToleransi = settings.jamToleransi || '06:40';
+    const jamTutupMasuk = settings.jamMasukSelesai || '08:00';
+
+    // Cek sebelum jam buka masuk
+    if (curHM < jamBukaMasuk) {
+      window.soundEngine.playDuplicate();
+      showResultBanner({
+        nisn: cleanNisn,
+        name: studentInfo.name,
+        class: studentInfo.class,
+        status: 'Belum Dibuka',
+        type: 'late',
+        withoutCard: false,
+        meta: `Presensi Masuk baru dibuka pukul ${jamBukaMasuk} WIB!`,
+        pointsText: 'Belum jam buka presensi',
+        durationMs: Math.round(performance.now() - startTime)
+      });
+      return;
+    }
+
+    // Cek setelah jam tutup masuk
+    if (curHM > jamTutupMasuk) {
+      window.soundEngine.playDuplicate();
+      showResultBanner({
+        nisn: cleanNisn,
+        name: studentInfo.name,
+        class: studentInfo.class,
+        status: 'Presensi Ditutup',
+        type: 'late',
+        withoutCard: false,
+        meta: `Gerbang Presensi Masuk sudah ditutup pukul ${jamTutupMasuk} WIB!`,
+        pointsText: 'Waktu presensi masuk berakhir',
+        durationMs: Math.round(performance.now() - startTime)
+      });
+      return;
+    }
+
+    // Cegah scan masuk 2x sehari (1 Hari 1x Masuk)
+    if (settings.lockOncePerDay !== false) {
+      const alreadyMasuk = records.find(r => r.nisn === cleanNisn && (r.mode === 'masuk' || (!r.mode && r.type !== 'Pulang')));
+      if (alreadyMasuk) {
+        window.soundEngine.playDuplicate();
+        showResultBanner({
+          nisn: cleanNisn,
+          name: alreadyMasuk.name,
+          class: alreadyMasuk.class,
+          status: 'Sudah Absen Masuk',
+          type: 'duplicate',
+          withoutCard: alreadyMasuk.withoutCard,
+          meta: `Siswa sudah presensi masuk hari ini pukul ${alreadyMasuk.time} WIB`,
+          pointsText: '',
+          durationMs: Math.round(performance.now() - startTime)
+        });
+        return;
+      }
+    }
+
+    // Tentukan Tepat Waktu vs Terlambat
+    const isLate = (curHM > jamToleransi);
+    const statusText = isLate ? 'Terlambat' : 'Tepat Waktu';
+    const points = isLate ? (parseInt(settings.poinPelanggaran, 10) || 1) : 0;
+    const tipe = isLate ? 'Pelanggaran' : 'Hadir';
+    const keterangan = isLate 
+      ? (settings.kategoriTerlambat || 'Terlambat hadir di sekolah lebih dari 10 menit.') 
+      : 'Tepat Waktu';
 
     // Play Audio
     if (isLate) {
@@ -410,6 +636,7 @@ document.addEventListener('DOMContentLoaded', () => {
       timestamp: now.getTime(),
       date: todayStr,
       time: currentTimeStr,
+      mode: 'masuk',
       type: tipe,
       status: statusText,
       keterangan: keterangan,
@@ -423,12 +650,9 @@ document.addEventListener('DOMContentLoaded', () => {
       source: source
     };
 
-    // Instant local save
     window.storageService.addRecord(newRecord);
-
     const execTimeMs = Math.round(performance.now() - startTime);
 
-    // Show Result Banner
     showResultBanner({
       nisn: cleanNisn,
       name: studentInfo.name,
@@ -443,7 +667,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     renderAttendanceUI(searchHistoryInput.value);
 
-    // Save Firebase & Sync GAS
     window.firebaseService.saveScan(newRecord).then(ok => {
       if (ok) window.storageService.updateRecordSyncStatus(newRecord.id, 'firebase', true);
     });
@@ -458,18 +681,26 @@ document.addEventListener('DOMContentLoaded', () => {
     if (info.type === 'duplicate') {
       scanResultCard.classList.add('duplicate-alert');
       resultIcon.textContent = '⚠️';
-      resultStatusTag.textContent = 'SUDAH SCAN';
+      resultStatusTag.textContent = (info.status || 'SUDAH SCAN').toUpperCase();
+      resultStatusTag.style.background = '';
+    } else if (info.status === 'Pulang' || info.status === 'Presensi Pulang') {
+      resultIcon.textContent = '🏠';
+      resultStatusTag.textContent = 'PULANG (0 POIN)';
+      resultStatusTag.style.background = 'linear-gradient(135deg, #6366f1, #4f46e5)';
     } else if (info.withoutCard) {
       scanResultCard.classList.add('without-card-alert');
       resultIcon.textContent = '⚠️';
       resultStatusTag.textContent = (info.status || 'TERLAMBAT').toUpperCase();
+      resultStatusTag.style.background = '';
     } else if (info.type === 'late') {
       scanResultCard.classList.add('late-warning');
       resultIcon.textContent = '⏰';
       resultStatusTag.textContent = 'TERLAMBAT';
+      resultStatusTag.style.background = '';
     } else {
       resultIcon.textContent = '✅';
       resultStatusTag.textContent = 'TEPAT WAKTU';
+      resultStatusTag.style.background = '';
     }
 
     if (resultClassTag) {
@@ -629,29 +860,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const currentTimeStr = getCurrentTimeString();
     const todayStr = window.storageService.getTodayString();
 
-    const toleransiLimit = (settings.jamToleransi || '07:15') + ':00';
+    const mode = window.storageService.getScanMode();
+    const isPulang = (mode === 'pulang');
+
+    const toleransiLimit = (settings.jamToleransi || '06:40') + ':00';
     const isLate = currentTimeStr > toleransiLimit;
-    const statusText = isLate ? 'Terlambat' : 'Tepat Waktu';
 
-    const poinCard = parseInt(settings.poinTanpaKartu, 10) || 5;
-    const poinLate = isLate ? (parseInt(settings.poinPelanggaran, 10) || 5) : 0;
-    const totalPoints = poinCard + poinLate;
+    let statusText = isLate ? 'Terlambat' : 'Tepat Waktu';
+    let tipe = 'Pelanggaran';
+    let totalPoints = (parseInt(settings.poinTanpaKartu, 10) || 2) + (isLate ? (parseInt(settings.poinPelanggaran, 10) || 1) : 0);
+    let keterangan = isLate ? `${settings.kategoriTerlambat || 'Terlambat hadir di sekolah lebih dari 10 menit.'}. ${settings.kategoriTanpaKartu || 'Tidak Membawa ID Card/Kartu Pelajar'}` : (settings.kategoriTanpaKartu || 'Tidak Membawa ID Card/Kartu Pelajar');
 
-    const selectViolationCategory = document.getElementById('selectViolationCategory');
-    const tipe = 'Pelanggaran';
-    const katTerlambat = settings.kategoriTerlambat || 'Terlambat hadir di kelas lebih dari 10 menit.';
-    const katTanpaKartu = settings.kategoriTanpaKartu || 'Tidak membawa ID Card';
-    const defaultKet = isLate ? `${katTerlambat}. ${katTanpaKartu}` : katTanpaKartu;
-    const keterangan = selectViolationCategory && selectViolationCategory.value
-      ? selectViolationCategory.value
-      : defaultKet;
-
-    const guardSession = window.storageService.getGuardSession();
-    const guardUsername = guardSession ? (guardSession.username || guardSession.guardName) : 'admin1';
-    const guardName = guardSession ? guardSession.guardName : 'Penjaga';
-    const waktuInput = `${todayStr} ${currentTimeStr}`;
-
-    window.soundEngine.playLate();
+    if (isPulang) {
+      statusText = 'Pulang';
+      tipe = 'Pulang';
+      totalPoints = 0;
+      keterangan = 'Presensi Pulang (Tanpa Kartu)';
+      window.soundEngine.playPulang();
+    } else {
+      window.soundEngine.playLate();
+    }
 
     const newRecord = {
       id: `manual_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
@@ -868,14 +1096,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function applySettingsUI() {
     const s = window.storageService.getSettings();
-    if (displayBatasJamEl) displayBatasJamEl.textContent = s.jamMasuk || '07:00';
-    if (displayToleransiEl) displayToleransiEl.textContent = s.jamToleransi || '07:15';
-    if (displayPoinEl) displayPoinEl.textContent = s.poinPelanggaran || 5;
-    if (displayPoinTanpaKartuEl) displayPoinTanpaKartuEl.textContent = s.poinTanpaKartu || 5;
-
-    // Form inputs
-    const inJamMasuk = document.getElementById('cfgJamMasuk');
+    const inJamMasukMulai = document.getElementById('cfgJamMasukMulai');
     const inJamToleransi = document.getElementById('cfgJamToleransi');
+    const inJamMasukSelesai = document.getElementById('cfgJamMasukSelesai');
+    const inJamPulangMulai = document.getElementById('cfgJamPulangMulai');
+    const inJamPulangSelesai = document.getElementById('cfgJamPulangSelesai');
+    const inLockOnce = document.getElementById('cfgLockOncePerDay');
+
+    if (inJamMasukMulai) inJamMasukMulai.value = s.jamMasukMulai || '06:00';
+    if (inJamToleransi) inJamToleransi.value = s.jamToleransi || '06:40';
+    if (inJamMasukSelesai) inJamMasukSelesai.value = s.jamMasukSelesai || '08:00';
+    if (inJamPulangMulai) inJamPulangMulai.value = s.jamPulangMulai || '15:00';
+    if (inJamPulangSelesai) inJamPulangSelesai.value = s.jamPulangSelesai || '18:00';
+    if (inLockOnce) inLockOnce.checked = (s.lockOncePerDay !== false);
+
     const inPoinPelanggaran = document.getElementById('cfgPoinPelanggaran');
     const inPoinTanpaKartu = document.getElementById('cfgPoinTanpaKartu');
     const inCooldown = document.getElementById('cfgCooldownScan');
@@ -886,11 +1120,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const inFbDatabaseUrl = document.getElementById('cfgFbDatabaseUrl');
     const inFbProjectId = document.getElementById('cfgFbProjectId');
 
-    if (inJamMasuk) inJamMasuk.value = s.jamMasuk || '07:00';
-    if (inJamToleransi) inJamToleransi.value = s.jamToleransi || '07:15';
-    if (inPoinPelanggaran) inPoinPelanggaran.value = s.poinPelanggaran || 5;
-    if (inPoinTanpaKartu) inPoinTanpaKartu.value = s.poinTanpaKartu || 5;
-    if (inCooldown) inCooldown.value = s.cooldownMinutes || 30;
+    if (inPoinPelanggaran) inPoinPelanggaran.value = s.poinPelanggaran || 1;
+    if (inPoinTanpaKartu) inPoinTanpaKartu.value = s.poinTanpaKartu || 2;
+    if (inCooldown) inCooldown.value = s.cooldownMinutes || 1;
     if (inGasUrl) inGasUrl.value = s.gasUrl || '';
     if (inSpreadsheetId) inSpreadsheetId.value = s.spreadsheetId || '';
     if (inSheetName) inSheetName.value = s.sheetName || 'catatan_poin';
@@ -902,6 +1134,7 @@ document.addEventListener('DOMContentLoaded', () => {
       masterCountEl.textContent = Object.keys(window.storageService.getMasterStudents()).length;
     }
 
+    updateScanModeUI();
     populatePointCategoryDropdowns();
     renderUserTableUI();
   }
@@ -996,11 +1229,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const selTerlambat = document.getElementById('cfgKategoriTerlambat');
     const selTanpaKartu = document.getElementById('cfgKategoriTanpaKartu');
 
+    const inJamMasukMulai = document.getElementById('cfgJamMasukMulai');
+    const inJamMasukSelesai = document.getElementById('cfgJamMasukSelesai');
+    const inJamPulangMulai = document.getElementById('cfgJamPulangMulai');
+    const inJamPulangSelesai = document.getElementById('cfgJamPulangSelesai');
+    const inLockOnce = document.getElementById('cfgLockOncePerDay');
+
     const newSettings = {
-      jamMasuk: document.getElementById('cfgJamMasuk').value,
-      jamToleransi: document.getElementById('cfgJamToleransi').value,
-      poinPelanggaran: parseInt(document.getElementById('cfgPoinPelanggaran').value, 10) || 5,
-      poinTanpaKartu: parseInt(document.getElementById('cfgPoinTanpaKartu').value, 10) || 5,
+      jamMasukMulai: inJamMasukMulai ? inJamMasukMulai.value : '06:00',
+      jamMasuk: inJamMasukMulai ? inJamMasukMulai.value : '06:00',
+      jamToleransi: document.getElementById('cfgJamToleransi').value || '06:40',
+      jamMasukSelesai: inJamMasukSelesai ? inJamMasukSelesai.value : '08:00',
+      jamPulangMulai: inJamPulangMulai ? inJamPulangMulai.value : '15:00',
+      jamPulangSelesai: inJamPulangSelesai ? inJamPulangSelesai.value : '18:00',
+      lockOncePerDay: inLockOnce ? inLockOnce.checked : true,
+      poinPelanggaran: parseInt(document.getElementById('cfgPoinPelanggaran').value, 10) || 1,
+      poinTanpaKartu: parseInt(document.getElementById('cfgPoinTanpaKartu').value, 10) || 2,
       kategoriTerlambat: selTerlambat ? selTerlambat.value : 'Terlambat hadir di kelas lebih dari 10 menit.',
       kategoriTanpaKartu: selTanpaKartu ? selTanpaKartu.value : 'Tidak membawa ID Card',
       cooldownMinutes: parseInt(document.getElementById('cfgCooldownScan').value, 10) || 30,
