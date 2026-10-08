@@ -1073,6 +1073,41 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  const btnSyncMasterFromSheets = document.getElementById('btnSyncMasterFromSheets');
+  if (btnSyncMasterFromSheets) {
+    btnSyncMasterFromSheets.addEventListener('click', async () => {
+      btnSyncMasterFromSheets.disabled = true;
+      btnSyncMasterFromSheets.textContent = '⏳ Menarik Data Siswa & Poin...';
+      try {
+        // Save URL first if typed
+        const gasUrl = document.getElementById('cfgGasUrl').value.trim();
+        const sheetId = document.getElementById('cfgSpreadsheetId').value.trim();
+        if (gasUrl) {
+          window.storageService.saveSettings({ gasUrl: gasUrl, spreadsheetId: sheetId });
+        }
+
+        const sRes = await window.syncService.fetchStudentsFromSpreadsheet();
+        const pRes = await window.syncService.fetchPointCategoriesFromSpreadsheet();
+
+        let msg = '';
+        if (sRes.success) msg += `✓ ${sRes.count} Siswa dimuat. `;
+        if (pRes.success) msg += `✓ ${pRes.count} Kategori Poin dimuat.`;
+
+        if (sRes.success || pRes.success) {
+          showToast(`Sukses sinkronisasi! ${msg}`, 'success');
+          applySettingsUI();
+        } else {
+          showToast(sRes.message || pRes.message || 'Gagal menarik data dari spreadsheet.', 'error');
+        }
+      } catch (err) {
+        showToast(`Error: ${err.message}`, 'error');
+      } finally {
+        btnSyncMasterFromSheets.disabled = false;
+        btnSyncMasterFromSheets.textContent = '📥 Tarik Data Siswa & Kategori Poin dari Spreadsheet';
+      }
+    });
+  }
+
   // Export CSV
   btnExportCsv.addEventListener('click', () => {
     const csv = window.storageService.exportTodayToCsv();
