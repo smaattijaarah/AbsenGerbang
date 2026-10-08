@@ -984,7 +984,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  btnSaveSettings.addEventListener('click', () => {
+  btnSaveSettings.addEventListener('click', async () => {
     const rawSheetId = document.getElementById('cfgSpreadsheetId').value;
     const cleanSheetId = extractSpreadsheetId(rawSheetId);
     if (cleanSheetId !== rawSheetId) {
@@ -1022,18 +1022,58 @@ document.addEventListener('DOMContentLoaded', () => {
     window.firebaseService.init();
     window.syncService.startAutoSync();
 
-    // Simpan permanen ke sheet 'konfigurasi' di Spreadsheet
-    if (newSettings.gasUrl) {
-      window.syncService.saveSettingsToSpreadsheet(newSettings).then(res => {
-        if (res && res.success && !res.offline) {
-          showToast('✓ Pengaturan tersimpan permanen di sheet \'konfigurasi\'!', 'success');
-        }
-      });
+    if (!newSettings.gasUrl) {
+      showToast('⚠️ URL Web App belum diisi! Pengaturan HANYA tersimpan di browser ini. Isi URL Web App agar tersimpan permanen di Spreadsheet.', 'warning');
+      settingsModal.classList.add('hidden');
+      return;
     }
 
+    btnSaveSettings.disabled = true;
+    btnSaveSettings.textContent = 'Menyimpan ke Spreadsheet...';
+
+    const res = await window.syncService.saveSettingsToSpreadsheet(newSettings);
+    btnSaveSettings.disabled = false;
+    btnSaveSettings.textContent = 'Simpan Pengaturan';
     settingsModal.classList.add('hidden');
-    showToast('Pengaturan berhasil disimpan!', 'success');
+
+    if (res && res.success && !res.offline) {
+      showToast('✅ Berhasil! Pengaturan jadwal & poin tersimpan SELAMANYA di sheet Pengaturan_Scanner!', 'success');
+    } else {
+      showToast('⚠️ Pengaturan tersimpan di browser, tetapi gagal menulis ke spreadsheet: ' + (res.message || 'Cek URL Web App'), 'error');
+    }
   });
+
+  const btnInitSheets = document.getElementById('btnInitSheets');
+  if (btnInitSheets) {
+    btnInitSheets.addEventListener('click', async () => {
+      const gasUrl = document.getElementById('cfgGasUrl').value.trim();
+      const sheetId = document.getElementById('cfgSpreadsheetId').value.trim();
+      if (!gasUrl) {
+        showToast('Isi URL Web App Google Apps Script terlebih dahulu!', 'warning');
+        return;
+      }
+      window.storageService.saveSettings({ gasUrl, spreadsheetId: sheetId });
+
+      btnInitSheets.disabled = true;
+      btnInitSheets.textContent = '⏳ Membuat sheet di Spreadsheet...';
+      try {
+        const res = await window.syncService.initSheetsInSpreadsheet();
+        if (res.success) {
+          showToast('✅ Berhasil! Sheet "Pengaturan_Scanner" dan "Data_Pengguna" telah dibuat di Google Sheets!', 'success');
+          await window.syncService.fetchSettingsFromSpreadsheet();
+          await window.syncService.fetchUsersFromSpreadsheet();
+          applySettingsUI();
+        } else {
+          showToast(res.message || 'Gagal membuat sheet di spreadsheet.', 'error');
+        }
+      } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+      } finally {
+        btnInitSheets.disabled = false;
+        btnInitSheets.textContent = '🛠️ Buat Sheet Pengaturan & Data Pengguna di Spreadsheet';
+      }
+    });
+  }
 
   // Master Data CSV Import
   btnSaveMasterData.addEventListener('click', () => {
@@ -1326,7 +1366,13 @@ document.addEventListener('DOMContentLoaded', () => {
       btnSaveUserSpreadsheet.disabled = false;
       btnSaveUserSpreadsheet.textContent = '💾 Simpan Akun ke Spreadsheet';
 
-      showToast(res.message || 'Akun berhasil disimpan!', res.success ? 'success' : 'error');
+      if (res.success && !res.offline) {
+        showToast('✅ Akun "' + username + '" berhasil tersimpan SELAMANYA di sheet Data_Pengguna di Spreadsheet!', 'success');
+      } else if (res.offline) {
+        showToast('⚠️ Akun tersimpan di browser saja (Isi URL Web App agar tersimpan permanen di Spreadsheet).', 'warning');
+      } else {
+        showToast(res.message || 'Gagal menyimpan akun ke spreadsheet', 'error');
+      }
 
       // Reset form
       document.getElementById('uFormUsername').value = '';
