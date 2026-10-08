@@ -10,7 +10,8 @@ class StorageService {
       MASTER_STUDENTS: 'fast_scanner_students_master',
       LAST_ACTIVE_DATE: 'fast_scanner_active_date',
       AUTH_SESSION: 'fast_scanner_guard_session',
-      USERS: 'fast_scanner_app_users'
+      USERS: 'fast_scanner_app_users',
+      POINT_CATEGORIES: 'fast_scanner_point_categories'
     };
 
     this.defaultSettings = {
@@ -23,6 +24,8 @@ class StorageService {
       jamToleransi: '07:15',
       poinPelanggaran: 5,
       poinTanpaKartu: 5,
+      kategoriTerlambat: 'Terlambat hadir di kelas lebih dari 10 menit.',
+      kategoriTanpaKartu: 'Tidak membawa ID Card',
       cooldownMinutes: 30,
       soundEnabled: true,
       
@@ -40,6 +43,21 @@ class StorageService {
     };
 
     this.checkDayRollover();
+  }
+
+  getPointCategories() {
+    try {
+      const raw = localStorage.getItem(this.KEYS.POINT_CATEGORIES);
+      return raw ? JSON.parse(raw) : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  savePointCategories(cats) {
+    if (Array.isArray(cats)) {
+      localStorage.setItem(this.KEYS.POINT_CATEGORIES, JSON.stringify(cats));
+    }
   }
 
   getTodayString() {
