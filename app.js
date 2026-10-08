@@ -386,7 +386,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const tipe = isLate ? 'Pelanggaran' : 'Hadir';
     const keterangan = isLate 
-      ? 'Terlambat hadir di kelas lebih dari 10 menit.' 
+      ? (settings.kategoriTerlambat || 'Terlambat hadir di kelas lebih dari 10 menit.') 
       : 'Tepat Waktu';
 
     const studentInfo = window.storageService.lookupStudent(cleanNisn);
@@ -512,10 +512,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const selectViolationCategory = document.getElementById('selectViolationCategory');
     if (selectViolationCategory) {
+      const katTerlambat = settings.kategoriTerlambat || 'Terlambat hadir di kelas lebih dari 10 menit.';
+      const katTanpaKartu = settings.kategoriTanpaKartu || 'Tidak membawa ID Card';
+      const comboText = `${katTerlambat}. ${katTanpaKartu}`;
+
+      selectViolationCategory.innerHTML = `
+        <option value="${katTanpaKartu}">${katTanpaKartu}</option>
+        <option value="${katTerlambat}">${katTerlambat}</option>
+        <option value="${comboText}">${comboText}</option>
+      `;
+
       if (isLate) {
-        selectViolationCategory.value = 'Terlambat hadir di kelas lebih dari 10 menit. Tidak membawa ID Card';
+        selectViolationCategory.value = comboText;
       } else {
-        selectViolationCategory.value = 'Tidak membawa ID Card';
+        selectViolationCategory.value = katTanpaKartu;
       }
     }
   }
@@ -629,9 +639,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const selectViolationCategory = document.getElementById('selectViolationCategory');
     const tipe = 'Pelanggaran';
+    const katTerlambat = settings.kategoriTerlambat || 'Terlambat hadir di kelas lebih dari 10 menit.';
+    const katTanpaKartu = settings.kategoriTanpaKartu || 'Tidak membawa ID Card';
+    const defaultKet = isLate ? `${katTerlambat}. ${katTanpaKartu}` : katTanpaKartu;
     const keterangan = selectViolationCategory && selectViolationCategory.value
       ? selectViolationCategory.value
-      : (isLate ? 'Terlambat hadir di kelas lebih dari 10 menit. Tidak membawa ID Card' : 'Tidak membawa ID Card');
+      : defaultKet;
 
     const guardSession = window.storageService.getGuardSession();
     const guardUsername = guardSession ? (guardSession.username || guardSession.guardName) : 'admin1';
@@ -811,6 +824,134 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  function populatePointCategoryDropdowns() {
+    const s = window.storageService.getSettings();
+    const categories = window.storageService.getPointCategories();
+
+    const selTerlambat = document.getElementById('cfgKategoriTerlambat');
+    const selTanpaKartu = document.getElementById('cfgKategoriTanpaKartu');
+
+    if (selTerlambat) {
+      const defaultTerlambat = s.kategoriTerlambat || 'Terlambat hadir di kelas lebih dari 10 menit.';
+      let optionsHtml = '';
+      let foundDefault = false;
+
+      categories.forEach(cat => {
+        const isSelected = (cat.name === defaultTerlambat);
+        if (isSelected) foundDefault = true;
+        optionsHtml += `<option value="${cat.name}" data-points="${cat.points}" ${isSelected ? 'selected' : ''}>${cat.name} (${cat.points} Poin)</option>`;
+      });
+
+      if (!foundDefault) {
+        optionsHtml = `<option value="${defaultTerlambat}" data-points="${s.poinPelanggaran || 5}" selected>${defaultTerlambat} (${s.poinPelanggaran || 5} Poin)</option>` + optionsHtml;
+      }
+      selTerlambat.innerHTML = optionsHtml;
+    }
+
+    if (selTanpaKartu) {
+      const defaultTanpaKartu = s.kategoriTanpaKartu || 'Tidak membawa ID Card';
+      let optionsHtml = '';
+      let foundDefault = false;
+
+      categories.forEach(cat => {
+        const isSelected = (cat.name === defaultTanpaKartu);
+        if (isSelected) foundDefault = true;
+        optionsHtml += `<option value="${cat.name}" data-points="${cat.points}" ${isSelected ? 'selected' : ''}>${cat.name} (${cat.points} Poin)</option>`;
+      });
+
+      if (!foundDefault) {
+        optionsHtml = `<option value="${defaultTanpaKartu}" data-points="${s.poinTanpaKartu || 5}" selected>${defaultTanpaKartu} (${s.poinTanpaKartu || 5} Poin)</option>` + optionsHtml;
+      }
+      selTanpaKartu.innerHTML = optionsHtml;
+    }
+  }
+
+  function applySettingsUI() {
+    const s = window.storageService.getSettings();
+    if (displayBatasJamEl) displayBatasJamEl.textContent = s.jamMasuk || '07:00';
+    if (displayToleransiEl) displayToleransiEl.textContent = s.jamToleransi || '07:15';
+    if (displayPoinEl) displayPoinEl.textContent = s.poinPelanggaran || 5;
+    if (displayPoinTanpaKartuEl) displayPoinTanpaKartuEl.textContent = s.poinTanpaKartu || 5;
+
+    // Form inputs
+    const inJamMasuk = document.getElementById('cfgJamMasuk');
+    const inJamToleransi = document.getElementById('cfgJamToleransi');
+    const inPoinPelanggaran = document.getElementById('cfgPoinPelanggaran');
+    const inPoinTanpaKartu = document.getElementById('cfgPoinTanpaKartu');
+    const inCooldown = document.getElementById('cfgCooldownScan');
+    const inGasUrl = document.getElementById('cfgGasUrl');
+    const inSpreadsheetId = document.getElementById('cfgSpreadsheetId');
+    const inSheetName = document.getElementById('cfgSheetName');
+    const inFbApiKey = document.getElementById('cfgFbApiKey');
+    const inFbDatabaseUrl = document.getElementById('cfgFbDatabaseUrl');
+    const inFbProjectId = document.getElementById('cfgFbProjectId');
+
+    if (inJamMasuk) inJamMasuk.value = s.jamMasuk || '07:00';
+    if (inJamToleransi) inJamToleransi.value = s.jamToleransi || '07:15';
+    if (inPoinPelanggaran) inPoinPelanggaran.value = s.poinPelanggaran || 5;
+    if (inPoinTanpaKartu) inPoinTanpaKartu.value = s.poinTanpaKartu || 5;
+    if (inCooldown) inCooldown.value = s.cooldownMinutes || 30;
+    if (inGasUrl) inGasUrl.value = s.gasUrl || '';
+    if (inSpreadsheetId) inSpreadsheetId.value = s.spreadsheetId || '';
+    if (inSheetName) inSheetName.value = s.sheetName || 'Presensi_Masuk';
+    if (inFbApiKey) inFbApiKey.value = s.fbApiKey || '';
+    if (inFbDatabaseUrl) inFbDatabaseUrl.value = s.fbDatabaseUrl || '';
+    if (inFbProjectId) inFbProjectId.value = s.fbProjectId || '';
+
+    if (masterCountEl) {
+      masterCountEl.textContent = Object.keys(window.storageService.getMasterStudents()).length;
+    }
+
+    populatePointCategoryDropdowns();
+    renderUserTableUI();
+  }
+
+  // Change listener for point categories
+  const selTerlambatEl = document.getElementById('cfgKategoriTerlambat');
+  if (selTerlambatEl) {
+    selTerlambatEl.addEventListener('change', () => {
+      const opt = selTerlambatEl.selectedOptions[0];
+      if (opt && opt.dataset.points) {
+        const inPoin = document.getElementById('cfgPoinPelanggaran');
+        if (inPoin) inPoin.value = opt.dataset.points;
+      }
+    });
+  }
+
+  const selTanpaKartuEl = document.getElementById('cfgKategoriTanpaKartu');
+  if (selTanpaKartuEl) {
+    selTanpaKartuEl.addEventListener('change', () => {
+      const opt = selTanpaKartuEl.selectedOptions[0];
+      if (opt && opt.dataset.points) {
+        const inPoin = document.getElementById('cfgPoinTanpaKartu');
+        if (inPoin) inPoin.value = opt.dataset.points;
+      }
+    });
+  }
+
+  // Button fetch point categories from konfigurasi_poin
+  const btnFetchPointCategories = document.getElementById('btnFetchPointCategories');
+  if (btnFetchPointCategories) {
+    btnFetchPointCategories.addEventListener('click', async () => {
+      btnFetchPointCategories.disabled = true;
+      btnFetchPointCategories.textContent = '⏳ Memuat dari sheet...';
+      try {
+        const res = await window.syncService.fetchPointCategoriesFromSpreadsheet();
+        if (res.success) {
+          showToast(`Berhasil memuat ${res.count} kategori poin dari sheet '${res.sheetName}'!`, 'success');
+          populatePointCategoryDropdowns();
+        } else {
+          showToast(res.message || 'Gagal memuat kategori poin dari spreadsheet.', 'error');
+        }
+      } catch (err) {
+        showToast(`Error: ${err.message}`, 'error');
+      } finally {
+        btnFetchPointCategories.disabled = false;
+        btnFetchPointCategories.textContent = '🔄 Muat Kategori dari Sheet \'konfigurasi_poin\'';
+      }
+    });
+  }
+
   btnOpenSettings.addEventListener('click', () => {
     const session = window.storageService.getGuardSession();
     if (session && session.role === 'admin') {
@@ -852,12 +993,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const cfgGuardPinEl = document.getElementById('cfgGuardPin');
     const cfgDefaultGuardNameEl = document.getElementById('cfgDefaultGuardName');
+    const selTerlambat = document.getElementById('cfgKategoriTerlambat');
+    const selTanpaKartu = document.getElementById('cfgKategoriTanpaKartu');
 
     const newSettings = {
       jamMasuk: document.getElementById('cfgJamMasuk').value,
       jamToleransi: document.getElementById('cfgJamToleransi').value,
       poinPelanggaran: parseInt(document.getElementById('cfgPoinPelanggaran').value, 10) || 5,
       poinTanpaKartu: parseInt(document.getElementById('cfgPoinTanpaKartu').value, 10) || 5,
+      kategoriTerlambat: selTerlambat ? selTerlambat.value : 'Terlambat hadir di kelas lebih dari 10 menit.',
+      kategoriTanpaKartu: selTanpaKartu ? selTanpaKartu.value : 'Tidak membawa ID Card',
       cooldownMinutes: parseInt(document.getElementById('cfgCooldownScan').value, 10) || 30,
 
       guardPin: cfgGuardPinEl ? cfgGuardPinEl.value.trim() : '1234',
@@ -968,6 +1113,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (sRes && sRes.success) {
           showToast(`Berhasil memuat ${sRes.count} data siswa dari tab '${sRes.sheetName}'!`, 'success');
           if (masterCountEl) masterCountEl.textContent = sRes.count;
+        }
+      });
+      window.syncService.fetchPointCategoriesFromSpreadsheet().then(pRes => {
+        if (pRes && pRes.success) {
+          showToast(`Berhasil memuat ${pRes.count} kategori poin dari sheet '${pRes.sheetName}'!`, 'info');
+          populatePointCategoryDropdowns();
         }
       });
     }
@@ -1152,7 +1303,7 @@ document.addEventListener('DOMContentLoaded', () => {
   applySettingsUI();
   renderAttendanceUI();
 
-  // Auto-sync master data siswa dari Spreadsheet jika belum ada data di lokal
+  // Auto-sync master data siswa & kategori poin dari Spreadsheet jika belum ada data di lokal
   setTimeout(async () => {
     try {
       const currentMaster = window.storageService.getMasterStudents();
@@ -1160,6 +1311,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const sRes = await window.syncService.fetchStudentsFromSpreadsheet();
         if (sRes && sRes.success && masterCountEl) {
           masterCountEl.textContent = sRes.count;
+        }
+      }
+      const currentCats = window.storageService.getPointCategories();
+      if (!currentCats || currentCats.length <= 2) {
+        const pRes = await window.syncService.fetchPointCategoriesFromSpreadsheet();
+        if (pRes && pRes.success) {
+          populatePointCategoryDropdowns();
         }
       }
     } catch (_) {}
