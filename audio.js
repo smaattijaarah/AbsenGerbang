@@ -83,6 +83,31 @@ class SoundEngine {
   }
 
   /**
+   * Sound: Sukses Presensi Pulang (Ascending melodic chime)
+   */
+  playPulang() {
+    if (!this.enabled) return;
+    this.ensureContext();
+    if (!this.audioCtx) return;
+
+    const ctx = this.audioCtx;
+    const now = ctx.currentTime;
+    const tones = [523.25, 659.25, 783.99, 1046.50];
+    tones.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + i * 0.06);
+      gain.gain.setValueAtTime(0.16, now + i * 0.06);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.06 + 0.22);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now + i * 0.06);
+      osc.stop(now + i * 0.06 + 0.22);
+    });
+  }
+
+  /**
    * Sound 2: Kesiangan / Terlambat (Warning melodic chime, 659Hz -> 440Hz)
    */
   playLate() {
