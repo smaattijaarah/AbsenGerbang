@@ -162,6 +162,134 @@ class SyncService {
       };
     }
   }
+
+  /**
+   * Ambil daftar User & Admin dari tab Data_Pengguna di Spreadsheet
+   */
+  async fetchUsersFromSpreadsheet() {
+    const settings = window.storageService.getSettings();
+    if (!settings.gasUrl || !settings.spreadsheetId) {
+      return { success: false, message: 'URL GAS atau ID Spreadsheet belum diisi.' };
+    }
+
+    try {
+      const payload = {
+        action: 'get_users',
+        spreadsheetId: settings.spreadsheetId
+      };
+      const res = await fetch(settings.gasUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload),
+        redirect: 'follow'
+      });
+      const data = await res.json();
+      if (data.status === 'success' && Array.isArray(data.users)) {
+        window.storageService.setUsers(data.users);
+        return { success: true, count: data.users.length, users: data.users };
+      }
+      return { success: false, message: data.message || 'Gagal memuat pengguna dari spreadsheet.' };
+    } catch (e) {
+      return { success: false, message: e.message };
+    }
+  }
+
+  /**
+   * Simpan atau update User ke tab Data_Pengguna di Spreadsheet
+   */
+  async saveUserToSpreadsheet(user) {
+    const settings = window.storageService.getSettings();
+    if (!settings.gasUrl || !settings.spreadsheetId) {
+      window.storageService.saveUserLocal(user);
+      return { success: true, offline: true, message: 'Tersimpan di memori lokal (offline).' };
+    }
+
+    try {
+      const payload = {
+        action: 'save_user',
+        spreadsheetId: settings.spreadsheetId,
+        user: user
+      };
+      const res = await fetch(settings.gasUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload),
+        redirect: 'follow'
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        window.storageService.saveUserLocal(user);
+        return { success: true, message: data.message };
+      }
+      return { success: false, message: data.message || 'Gagal menyimpan ke spreadsheet.' };
+    } catch (e) {
+      window.storageService.saveUserLocal(user);
+      return { success: true, offline: true, message: 'Tersimpan di cache lokal (gagal online: ' + e.message + ')' };
+    }
+  }
+
+  /**
+   * Hapus User dari tab Data_Pengguna di Spreadsheet
+   */
+  async deleteUserFromSpreadsheet(username) {
+    const settings = window.storageService.getSettings();
+    if (!settings.gasUrl || !settings.spreadsheetId) {
+      window.storageService.deleteUserLocal(username);
+      return { success: true, message: 'Dihapus dari memori lokal.' };
+    }
+
+    try {
+      const payload = {
+        action: 'delete_user',
+        spreadsheetId: settings.spreadsheetId,
+        username: username
+      };
+      const res = await fetch(settings.gasUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload),
+        redirect: 'follow'
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        window.storageService.deleteUserLocal(username);
+        return { success: true, message: data.message };
+      }
+      return { success: false, message: data.message };
+    } catch (e) {
+      window.storageService.deleteUserLocal(username);
+      return { success: true, message: 'Dihapus dari cache lokal.' };
+    }
+  }
+
+  /**
+   * Coba otentikasi online langsung ke spreadsheet
+   */
+  async authenticateOnline(username, pin) {
+    const settings = window.storageService.getSettings();
+    if (!settings.gasUrl || !settings.spreadsheetId) return null;
+
+    try {
+      const payload = {
+        action: 'auth_user',
+        spreadsheetId: settings.spreadsheetId,
+        username: username,
+        pin: pin
+      };
+      const res = await fetch(settings.gasUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload),
+        redirect: 'follow'
+      });
+      const data = await res.json();
+      if (data.status === 'success' && data.user) {
+        window.storageService.saveUserLocal(data.user);
+        return data.user;
+      }
+    } catch (_) {}
+    return null;
+  }
 }
 
 window.syncService = new SyncService();
