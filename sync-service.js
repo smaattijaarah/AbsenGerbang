@@ -209,8 +209,8 @@ class SyncService {
    */
   async fetchUsersFromSpreadsheet() {
     const settings = window.storageService.getSettings();
-    if (!settings.gasUrl || !settings.spreadsheetId) {
-      return { success: false, message: 'URL GAS atau ID Spreadsheet belum diisi.' };
+    if (!settings.gasUrl) {
+      return { success: false, message: 'URL Web App GAS belum diisi.' };
     }
 
     const cleanUrl = settings.gasUrl.trim();
@@ -262,8 +262,8 @@ class SyncService {
    */
   async fetchStudentsFromSpreadsheet() {
     const settings = window.storageService.getSettings();
-    if (!settings.gasUrl || !settings.spreadsheetId) {
-      return { success: false, message: 'URL GAS atau ID Spreadsheet belum diisi.' };
+    if (!settings.gasUrl) {
+      return { success: false, message: 'URL Web App GAS belum diisi.' };
     }
 
     const cleanUrl = settings.gasUrl.trim();
@@ -318,8 +318,8 @@ class SyncService {
    */
   async fetchPointCategoriesFromSpreadsheet() {
     const settings = window.storageService.getSettings();
-    if (!settings.gasUrl || !settings.spreadsheetId) {
-      return { success: false, message: 'URL GAS atau ID Spreadsheet belum diisi.' };
+    if (!settings.gasUrl) {
+      return { success: false, message: 'URL Web App GAS belum diisi.' };
     }
 
     const cleanUrl = settings.gasUrl.trim();
