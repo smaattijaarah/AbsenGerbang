@@ -530,6 +530,36 @@ class SyncService {
       return { success: false, message: e.message };
     }
   }
+
+  /**
+   * Buat atau pastikan sheet 'Pengaturan_Scanner' dan 'Data_Pengguna' tersedia di Spreadsheet
+   */
+  async initSheetsInSpreadsheet() {
+    const settings = window.storageService.getSettings();
+    if (!settings.gasUrl) {
+      return { success: false, message: 'URL Web App Google Apps Script belum diisi!' };
+    }
+
+    const cleanUrl = settings.gasUrl.trim();
+    const rawId = settings.spreadsheetId || '';
+    const cleanId = rawId.match(/\/d\/([a-zA-Z0-9_-]+)/) ? rawId.match(/\/d\/([a-zA-Z0-9_-]+)/)[1] : rawId.trim();
+
+    try {
+      const payload = {
+        action: 'init_sheets',
+        spreadsheetId: cleanId
+      };
+      const blob = new Blob([JSON.stringify(payload)], { type: 'text/plain' });
+      const res = await fetch(cleanUrl, { method: 'POST', body: blob, redirect: 'follow' });
+      const data = await res.json();
+      if (data.status === 'success') {
+        return { success: true, message: data.message };
+      }
+      return { success: false, message: data.message || 'Gagal membuat sheet di spreadsheet.' };
+    } catch (e) {
+      return { success: false, message: e.message };
+    }
+  }
 }
 
 window.syncService = new SyncService();
