@@ -364,7 +364,7 @@ class SyncService {
    */
   async saveUserToSpreadsheet(user) {
     const settings = window.storageService.getSettings();
-    if (!settings.gasUrl || !settings.spreadsheetId) {
+    if (!settings.gasUrl) {
       window.storageService.saveUserLocal(user);
       return { success: true, offline: true, message: 'Tersimpan di memori lokal (offline).' };
     }
@@ -372,7 +372,7 @@ class SyncService {
     try {
       const payload = {
         action: 'save_user',
-        spreadsheetId: settings.spreadsheetId,
+        spreadsheetId: settings.spreadsheetId || '',
         user: user
       };
       const blob = new Blob([JSON.stringify(payload)], { type: 'text/plain' });
@@ -398,7 +398,7 @@ class SyncService {
    */
   async deleteUserFromSpreadsheet(username) {
     const settings = window.storageService.getSettings();
-    if (!settings.gasUrl || !settings.spreadsheetId) {
+    if (!settings.gasUrl) {
       window.storageService.deleteUserLocal(username);
       return { success: true, message: 'Dihapus dari memori lokal.' };
     }
@@ -406,7 +406,7 @@ class SyncService {
     try {
       const payload = {
         action: 'delete_user',
-        spreadsheetId: settings.spreadsheetId,
+        spreadsheetId: settings.spreadsheetId || '',
         username: username
       };
       const blob = new Blob([JSON.stringify(payload)], { type: 'text/plain' });
@@ -432,12 +432,12 @@ class SyncService {
    */
   async authenticateOnline(username, pin) {
     const settings = window.storageService.getSettings();
-    if (!settings.gasUrl || !settings.spreadsheetId) return null;
+    if (!settings.gasUrl) return null;
 
     try {
       const payload = {
         action: 'auth_user',
-        spreadsheetId: settings.spreadsheetId,
+        spreadsheetId: settings.spreadsheetId || '',
         username: username,
         pin: pin
       };
@@ -454,6 +454,81 @@ class SyncService {
       }
     } catch (_) {}
     return null;
+  }
+
+  /**
+   * Tarik pengaturan jadwal & poin dari sheet 'konfigurasi' di Spreadsheet
+   */
+  async fetchSettingsFromSpreadsheet() {
+    const settings = window.storageService.getSettings();
+    if (!settings.gasUrl) return { success: false, message: 'URL GAS belum diisi' };
+
+    const cleanUrl = settings.gasUrl.trim();
+    const rawId = settings.spreadsheetId || '';
+    const cleanId = rawId.match(/\/d\/([a-zA-Z0-9_-]+)/) ? rawId.match(/\/d\/([a-zA-Z0-9_-]+)/)[1] : rawId.trim();
+
+    // 1. Coba via GET
+    try {
+      const getUrl = new URL(cleanUrl);
+      getUrl.searchParams.set('action', 'get_settings');
+      if (cleanId) getUrl.searchParams.set('spreadsheetId', cleanId);
+      getUrl.searchParams.set('_t', Date.now());
+
+      const res = await fetch(getUrl.toString(), { method: 'GET', redirect: 'follow', cache: 'no-cache' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.status === 'success' && data.settings) {
+          window.storageService.saveSettings(data.settings);
+          return { success: true, settings: data.settings };
+        }
+      }
+    } catch (_) {}
+
+    // 2. Fallback via POST
+    try {
+      const payload = { action: 'get_settings', spreadsheetId: cleanId };
+      const blob = new Blob([JSON.stringify(payload)], { type: 'text/plain' });
+      const res = await fetch(cleanUrl, { method: 'POST', body: blob, redirect: 'follow' });
+      const data = await res.json();
+      if (data.status === 'success' && data.settings) {
+        window.storageService.saveSettings(data.settings);
+        return { success: true, settings: data.settings };
+      }
+      return { success: false, message: data.message || 'Gagal memuat pengaturan dari spreadsheet.' };
+    } catch (e) {
+      return { success: false, message: e.message };
+    }
+  }
+
+  /**
+   * Simpan pengaturan jadwal & poin secara permanen ke sheet 'konfigurasi' di Spreadsheet
+   */
+  async saveSettingsToSpreadsheet(newSettings) {
+    const settings = window.storageService.getSettings();
+    if (!settings.gasUrl) {
+      return { success: true, offline: true, message: 'Tersimpan lokal (URL GAS belum diisi).' };
+    }
+
+    const cleanUrl = settings.gasUrl.trim();
+    const rawId = settings.spreadsheetId || '';
+    const cleanId = rawId.match(/\/d\/([a-zA-Z0-9_-]+)/) ? rawId.match(/\/d\/([a-zA-Z0-9_-]+)/)[1] : rawId.trim();
+
+    try {
+      const payload = {
+        action: 'save_settings',
+        spreadsheetId: cleanId,
+        settings: newSettings
+      };
+      const blob = new Blob([JSON.stringify(payload)], { type: 'text/plain' });
+      const res = await fetch(cleanUrl, { method: 'POST', body: blob, redirect: 'follow' });
+      const data = await res.json();
+      if (data.status === 'success') {
+        return { success: true, message: data.message };
+      }
+      return { success: false, message: data.message || 'Gagal menyimpan ke spreadsheet.' };
+    } catch (e) {
+      return { success: false, message: e.message };
+    }
   }
 }
 
