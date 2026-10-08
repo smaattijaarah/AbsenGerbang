@@ -258,6 +258,108 @@ class SyncService {
   }
 
   /**
+   * Tarik master data siswa dari Spreadsheet (Tab Data_Siswa / Siswa)
+   */
+  async fetchStudentsFromSpreadsheet() {
+    const settings = window.storageService.getSettings();
+    if (!settings.gasUrl || !settings.spreadsheetId) {
+      return { success: false, message: 'URL GAS atau ID Spreadsheet belum diisi.' };
+    }
+
+    const cleanUrl = settings.gasUrl.trim();
+    const rawId = settings.spreadsheetId || '';
+    const cleanId = rawId.match(/\/d\/([a-zA-Z0-9_-]+)/) ? rawId.match(/\/d\/([a-zA-Z0-9_-]+)/)[1] : rawId.trim();
+
+    // 1. Coba via GET
+    try {
+      const getUrl = new URL(cleanUrl);
+      getUrl.searchParams.set('action', 'get_students');
+      getUrl.searchParams.set('spreadsheetId', cleanId);
+      getUrl.searchParams.set('_t', Date.now());
+
+      const res = await fetch(getUrl.toString(), { method: 'GET', redirect: 'follow', cache: 'no-cache' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.status === 'success' && Array.isArray(data.students)) {
+          const map = {};
+          data.students.forEach(s => {
+            if (s.nisn) map[s.nisn] = { name: s.name, class: s.class };
+          });
+          window.storageService.saveMasterStudents(map);
+          return { success: true, count: data.students.length, sheetName: data.sheetName };
+        } else if (data.status === 'not_found') {
+          return { success: false, notFound: true, message: data.message };
+        }
+      }
+    } catch (_) {}
+
+    // 2. Fallback via POST
+    try {
+      const payload = { action: 'get_students', spreadsheetId: cleanId };
+      const blob = new Blob([JSON.stringify(payload)], { type: 'text/plain' });
+      const res = await fetch(cleanUrl, { method: 'POST', body: blob, redirect: 'follow' });
+      const data = await res.json();
+      if (data.status === 'success' && Array.isArray(data.students)) {
+        const map = {};
+        data.students.forEach(s => {
+          if (s.nisn) map[s.nisn] = { name: s.name, class: s.class };
+        });
+        window.storageService.saveMasterStudents(map);
+        return { success: true, count: data.students.length, sheetName: data.sheetName };
+      }
+      return { success: false, message: data.message || 'Gagal memuat data siswa dari spreadsheet.' };
+    } catch (e) {
+      return { success: false, message: e.message };
+    }
+  }
+
+  /**
+   * Tarik daftar kategori poin pelanggaran dari sheet 'konfigurasi_poin' di Spreadsheet
+   */
+  async fetchPointCategoriesFromSpreadsheet() {
+    const settings = window.storageService.getSettings();
+    if (!settings.gasUrl || !settings.spreadsheetId) {
+      return { success: false, message: 'URL GAS atau ID Spreadsheet belum diisi.' };
+    }
+
+    const cleanUrl = settings.gasUrl.trim();
+    const rawId = settings.spreadsheetId || '';
+    const cleanId = rawId.match(/\/d\/([a-zA-Z0-9_-]+)/) ? rawId.match(/\/d\/([a-zA-Z0-9_-]+)/)[1] : rawId.trim();
+
+    // 1. GET
+    try {
+      const getUrl = new URL(cleanUrl);
+      getUrl.searchParams.set('action', 'get_point_categories');
+      getUrl.searchParams.set('spreadsheetId', cleanId);
+      getUrl.searchParams.set('_t', Date.now());
+
+      const res = await fetch(getUrl.toString(), { method: 'GET', redirect: 'follow', cache: 'no-cache' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.status === 'success' && Array.isArray(data.categories) && data.categories.length > 0) {
+          window.storageService.savePointCategories(data.categories);
+          return { success: true, count: data.categories.length, categories: data.categories, sheetName: data.sheetName };
+        }
+      }
+    } catch (_) {}
+
+    // 2. POST Fallback
+    try {
+      const payload = { action: 'get_point_categories', spreadsheetId: cleanId };
+      const blob = new Blob([JSON.stringify(payload)], { type: 'text/plain' });
+      const res = await fetch(cleanUrl, { method: 'POST', body: blob, redirect: 'follow' });
+      const data = await res.json();
+      if (data.status === 'success' && Array.isArray(data.categories) && data.categories.length > 0) {
+        window.storageService.savePointCategories(data.categories);
+        return { success: true, count: data.categories.length, categories: data.categories, sheetName: data.sheetName };
+      }
+      return { success: false, message: data.message || 'Gagal memuat kategori poin dari sheet konfigurasi_poin' };
+    } catch (e) {
+      return { success: false, message: e.message };
+    }
+  }
+
+  /**
    * Simpan atau update User ke tab Data_Pengguna di Spreadsheet
    */
   async saveUserToSpreadsheet(user) {
