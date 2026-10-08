@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Clocks & Header
   const liveTimeEl = document.getElementById('liveTime');
   const liveDateEl = document.getElementById('liveDate');
+  const liveDateMobileEl = document.getElementById('liveDateMobile');
   const headerSyncStatus = document.getElementById('headerSyncStatus');
   const pendingSyncCountEl = document.getElementById('pendingSyncCount');
   const btnSoundToggle = document.getElementById('btnSoundToggle');
@@ -92,13 +93,25 @@ document.addEventListener('DOMContentLoaded', () => {
   function checkAuth() {
     const session = window.storageService.getGuardSession();
     if (session && session.guardName) {
-      const roleBadge = session.role === 'admin' ? ' (Admin)' : '';
+      const isAdmin = (session.role === 'admin');
+      const roleBadge = isAdmin ? ' (Admin)' : '';
       activeGuardNameEl.textContent = `Petugas: ${session.guardName}${roleBadge}`;
+
+      // TOMBOL PENGATURAN HANYA DITAMPILKAN UNTUK AKUN ADMIN!
+      if (btnOpenSettings) {
+        if (isAdmin) {
+          btnOpenSettings.classList.remove('hidden');
+        } else {
+          btnOpenSettings.classList.add('hidden');
+        }
+      }
+
       loginScreen.classList.add('hidden');
       mainApp.classList.remove('hidden');
     } else {
       loginScreen.classList.remove('hidden');
       mainApp.classList.add('hidden');
+      if (btnOpenSettings) btnOpenSettings.classList.add('hidden');
       loginPin.value = '';
       setTimeout(() => {
         if (!loginUsername.value) loginUsername.focus();
@@ -176,7 +189,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
     const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-    liveDateEl.textContent = `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+    const formattedDate = `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+    liveDateEl.textContent = formattedDate;
+    if (liveDateMobileEl) liveDateMobileEl.textContent = formattedDate;
   }
   setInterval(updateClock, 1000);
   updateClock();
@@ -751,19 +766,7 @@ document.addEventListener('DOMContentLoaded', () => {
       applySettingsUI();
       settingsModal.classList.remove('hidden');
     } else {
-      // Petugas biasa mencoba membuka pengaturan: minta verifikasi PIN Admin
-      const adminPin = prompt('Akses Khusus Admin: Masukkan PIN Administrator untuk membuka Pengaturan:');
-      if (!adminPin) return;
-      const adminUser = window.storageService.getUsers().find(u => 
-        u.role === 'admin' && String(u.pin).trim() === adminPin.trim()
-      );
-      if (adminUser) {
-        applySettingsUI();
-        settingsModal.classList.remove('hidden');
-        showToast('Akses Administrator diberikan.', 'info');
-      } else {
-        showToast('PIN Administrator salah. Akses ditolak.', 'error');
-      }
+      showToast('Akses ditolak: Menu Pengaturan hanya tersedia untuk akun Administrator.', 'error');
     }
   });
   btnCloseSettings.addEventListener('click', () => settingsModal.classList.add('hidden'));
