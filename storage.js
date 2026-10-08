@@ -19,9 +19,14 @@ class StorageService {
       guardPin: '1234',
       defaultGuardName: 'Penjaga Sekolah',
 
-      // Time & Violation Rules
+      // Time & Violation Rules (Presensi Masuk & Pulang)
+      jamMasukMulai: '06:00',
       jamMasuk: '06:00',
       jamToleransi: '06:40',
+      jamMasukSelesai: '08:00',
+      jamPulangMulai: '15:00',
+      jamPulangSelesai: '18:00',
+      lockOncePerDay: true,
       poinPelanggaran: 1,
       poinTanpaKartu: 2,
       kategoriTerlambat: 'Terlambat hadir di sekolah lebih dari 10 menit.',
@@ -57,6 +62,22 @@ class StorageService {
   savePointCategories(cats) {
     if (Array.isArray(cats)) {
       localStorage.setItem(this.KEYS.POINT_CATEGORIES, JSON.stringify(cats));
+    }
+  }
+
+  getScanMode() {
+    const saved = sessionStorage.getItem('fast_scanner_active_mode');
+    if (saved === 'masuk' || saved === 'pulang') return saved;
+    const s = this.getSettings();
+    const d = new Date();
+    const curHM = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    const pulangMulai = s.jamPulangMulai || '15:00';
+    return (curHM >= pulangMulai) ? 'pulang' : 'masuk';
+  }
+
+  saveScanMode(mode) {
+    if (mode === 'masuk' || mode === 'pulang') {
+      sessionStorage.setItem('fast_scanner_active_mode', mode);
     }
   }
 
