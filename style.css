@@ -363,109 +363,164 @@ body {
   gap: 16px;
 }
 
-/* ================= PILIHAN MODE PRESENSI (MASUK VS PULANG) ================= */
-.presence-mode-selector {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+/* ================= PUSAT KONTROL UTAMA: PILIHAN MASUK / KELUAR & CATAT SISWA TANPA KARTU (SIMETRIS DI TENGAH) ================= */
+.scanner-top-center-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   gap: 12px;
+  width: 100%;
+  margin-bottom: 2px;
 }
 
-.presence-mode-btn {
+/* 1. Toggle Segmented Pill: Cukup Tulisan Masuk & Keluar (Simetris di Tengah) */
+.mode-toggle-wrapper {
   display: flex;
+  justify-content: center;
   align-items: center;
-  gap: 14px;
-  padding: 14px 18px;
-  background: rgba(15, 23, 42, 0.7);
-  border: 2px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
+  width: 100%;
+}
+
+.mode-segmented-pill {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(15, 23, 42, 0.85);
+  padding: 5px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), inset 0 1px 2px rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  gap: 6px;
+}
+
+.mode-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 32px;
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #94a3b8;
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  text-align: left;
   user-select: none;
-  position: relative;
-  overflow: hidden;
+  min-width: 140px;
 }
 
-.presence-mode-btn:hover {
-  background: rgba(30, 41, 59, 0.9);
-  transform: translateY(-2px);
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-.presence-mode-btn .mode-icon {
-  font-size: 2rem;
+.mode-pill-btn .pill-icon {
+  font-size: 1.25rem;
   line-height: 1;
-  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5));
   transition: transform 0.25s ease;
 }
 
-.presence-mode-btn:hover .mode-icon {
+.mode-pill-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.mode-pill-btn:hover .pill-icon {
   transform: scale(1.15);
 }
 
-.presence-mode-btn .mode-text {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  flex: 1;
-}
-
-.mode-title-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.mode-title-row strong {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--text-main);
-  letter-spacing: -0.01em;
-}
-
-.presence-mode-btn small {
-  font-size: 0.76rem;
-  color: var(--text-muted);
-}
-
-.mode-status-pill {
-  font-size: 0.68rem;
-  font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 9999px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--text-muted);
-}
-
 /* Mode Masuk Active */
-.presence-mode-btn.mode-masuk.active {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.18), rgba(6, 95, 70, 0.3));
-  border-color: #10b981;
-  box-shadow: 0 0 20px rgba(16, 185, 129, 0.25), inset 0 0 12px rgba(16, 185, 129, 0.1);
-}
-.presence-mode-btn.mode-masuk.active .mode-title-row strong {
-  color: #34d399;
-}
-.presence-mode-btn.mode-masuk.active .mode-status-pill {
-  background: #10b981;
-  color: #064e3b;
+.mode-pill-btn.mode-masuk.active {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 0 18px rgba(16, 185, 129, 0.45), 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
-/* Mode Pulang Active */
-.presence-mode-btn.mode-pulang.active {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.22), rgba(67, 56, 202, 0.32));
-  border-color: #818cf8;
-  box-shadow: 0 0 20px rgba(99, 102, 241, 0.28), inset 0 0 12px rgba(99, 102, 241, 0.12);
+/* Mode Keluar Active */
+.mode-pill-btn.mode-keluar.active {
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 0 18px rgba(99, 102, 241, 0.45), 0 2px 8px rgba(0, 0, 0, 0.3);
 }
-.presence-mode-btn.mode-pulang.active .mode-title-row strong {
-  color: #a5b4fc;
+
+/* 2. Tombol Catat Siswa Tanpa Kartu (Simetris di Tengah) */
+.without-card-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
 }
-.presence-mode-btn.mode-pulang.active .mode-status-pill {
-  background: #818cf8;
-  color: #1e1b4b;
+
+.btn-without-card-centered {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 28px;
+  background: linear-gradient(135deg, rgba(217, 119, 6, 0.2), rgba(180, 83, 9, 0.32));
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  border-radius: 12px;
+  color: #fbbf24;
+  font-family: var(--font-sans);
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.18);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+}
+
+.btn-without-card-centered:hover {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.35), rgba(217, 119, 6, 0.5));
+  border-color: #f59e0b;
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 22px rgba(245, 158, 11, 0.35);
+}
+
+.btn-without-card-centered:active {
+  transform: translateY(0);
+}
+
+.btn-icon-pulse {
+  font-size: 1.15rem;
+  display: inline-block;
+  animation: pulseIcon 1.8s infinite ease-in-out;
+}
+
+@keyframes pulseIcon {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+
+/* Scanner Header & Indicator */
+.scanner-status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+.status-dot-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  animation: pulseDot 2s infinite ease-in-out;
+}
+
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
 }
 
 .scanner-main-box {
