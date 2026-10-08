@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>E-Absensi Penjaga - Fast Scanner NISN</title>
+  <meta name="description" content="Aplikasi scanner kehadiran cepat khusus penjaga sekolah terintegrasi Google Sheets E-Absensi">
+  
+  <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  
+  <!-- QR Scanner Library (CDN) -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  
+  <!-- Firebase App & Realtime Database -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+  
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ================= 1. HALAMAN LOGIN PENJAGA SEKOLAH ================= -->
+  <div id="loginScreen" class="login-overlay">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="login-badge-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+        </div>
+        <h1 class="login-title">Pos Presensi Siswa</h1>
+        <p class="login-subtitle">Masuk sebagai Petugas / Penjaga Sekolah</p>
+      </div>
+
+      <form id="loginForm" class="login-form">
+        <div class="form-group">
+          <label for="loginUsername">Nama / ID Petugas</label>
+          <input type="text" id="loginUsername" placeholder="Contoh: Pak Budi / Penjaga 1" required autofocus value="Penjaga Sekolah">
+        </div>
+        
+        <div class="form-group">
+          <label for="loginPin">PIN / Kata Sandi Masuk</label>
+          <input type="password" id="loginPin" placeholder="Masukkan PIN (Default: 1234)" required maxlength="20">
+          <small class="pin-hint">PIN bawaan awal: <strong>1234</strong> (Dapat diubah di pengaturan)</small>
+        </div>
+
+        <button type="submit" class="btn-login" id="btnLoginSubmit">
+          <span>Buka Aplikasi Scanner</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </button>
+      </form>
+
+      <div class="login-footer">
+        <span class="version-tag">E-Absensi v2.0 • Ultra Fast Kiosk</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 2. APLIKASI UTAMA (FOKUS & MINIMALIS) ================= -->
+  <div id="mainApp" class="main-wrapper hidden">
+    <!-- Header Ringkas -->
+    <header class="app-header-simple">
+      <div class="header-left">
+        <div class="guard-pill">
+          <span class="guard-dot"></span>
+          <span id="activeGuardName">Petugas: Penjaga Sekolah</span>
+        </div>
+        <div class="date-badge" id="liveDate">Senin, 01 Januari 2026</div>
+      </div>
+
+      <div class="header-center">
+        <span id="liveTime" class="header-clock">00:00:00</span>
+      </div>
+
+      <div class="header-right">
+        <!-- Status Indikator Sederhana -->
+        <span id="headerSyncStatus" class="status-indicator synced" title="Status Sinkronisasi ke Spreadsheet">
+          ☁️ Sheets: Siap (<span id="pendingSyncCount">0</span>)
+        </span>
+        <button id="btnSoundToggle" class="btn-header-action" title="Toggle Suara Beep">
+          <span id="soundStatusEmoji">🔊</span>
+        </button>
+        <button id="btnOpenSettings" class="btn-header-action" title="Pengaturan Sistem">
+          ⚙️
+        </button>
+        <button id="btnLogout" class="btn-header-action btn-logout-action" title="Keluar / Ganti Penjaga">
+          🚪 Keluar
+        </button>
+      </div>
+    </header>
+
+    <!-- Konten Utama: 2 Kolom Bersih (Kiri: Scanner, Kanan: Daftar Nama Hadir) -->
+    <main class="simple-layout">
+      
+      <!-- KOLOM KIRI: SCANNER & INPUT MANUAL TANPA KARTU -->
+      <section class="scanner-section">
+        
+        <!-- Action Utama Petugas: Scanner + Tombol Cepat Tanpa Kartu -->
+        <div class="scanner-main-box">
+          
+          <div class="scanner-header-row">
+            <div class="scanner-mode-switch">
+              <button id="tabUsb" class="btn-tab active">🔌 Scanner Kabel (USB)</button>
+              <button id="tabCamera" class="btn-tab">📷 Kamera HP/Webcam</button>
+            </div>
+
+            <!-- TOMBOL CEPAT: SISWA TIDAK BAWA KARTU -->
+            <button id="btnOpenManualWithoutCard" class="btn-without-card" title="Catat manual siswa yang lupa/tidak membawa kartu ID">
+              <span class="btn-icon-pulse">⚠️</span>
+              <strong>Catat Siswa Tanpa Kartu</strong>
+            </button>
+          </div>
+
+          <!-- Viewport Scanner USB -->
+          <div id="usbScannerView" class="scanner-display-area">
+            <div class="scanner-radar"></div>
+            <div class="scanner-laser"></div>
+            
+            <div class="scanner-content">
+              <div class="scanner-icon-wrap">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <path d="M4 7V4h3M17 4h3v3M4 17v3h3M20 17v3h-3" />
+                  <line x1="3" y1="12" x2="21" y2="12" stroke="#ef4444" stroke-width="2.5" />
+                  <rect x="7" y="7" width="10" height="10" rx="1" />
+                </svg>
+              </div>
+              <h2 class="scanner-instruction">Silakan Scan Kartu QR Siswa</h2>
+              <p class="scanner-subtext">Arahkan barcode kartu ke scanner. Otomatis membaca langsung tanpa klik!</p>
+              
+              <div class="quick-manual-input">
+                <input type="text" id="manualNisnInput" placeholder="Atau ketik NISN di sini lalu tekan Enter..." autocomplete="off">
+              </div>
+            </div>
+          </div>
+
+          <!-- Viewport Kamera (Jika mode kamera diaktifkan) -->
+          <div id="cameraScannerView" class="scanner-display-area camera-area hidden">
+            <div id="qrReader" style="width: 100%; max-width: 450px;"></div>
+            <div class="camera-actions">
+              <button id="btnSwitchCamera" class="btn-secondary-sm">🔄 Ganti Kamera</button>
+              <button id="btnStopCamera" class="btn-secondary-sm">Tutup Kamera</button>
+            </div>
+          </div>
+
+          <!-- Info Aturan Waktu Ringkas -->
+          <div class="rules-footer">
+            <span>Batas Masuk: <strong id="displayBatasJam">07:00</strong> WIB</span>
+            <span>•</span>
+            <span>Toleransi: <strong id="displayToleransi">07:15</strong> WIB</span>
+            <span>•</span>
+            <span>Poin Kesiangan: <strong id="displayPoin">5</strong></span>
+            <span>•</span>
+            <span>Poin Tanpa Kartu: <strong id="displayPoinTanpaKartu">5</strong></span>
+          </div>
+        </div>
+
+        <!-- Banner Hasil Terakhir Scan (Besar & Terang Seketika) -->
+        <div id="scanResultCard" class="result-card-banner hidden">
+          <div class="result-status-icon" id="resultIcon">✅</div>
+          <div class="result-details">
+            <div class="result-badge-row">
+              <span class="badge-tag" id="resultStatusTag">TEPAT WAKTU</span>
+              <span class="badge-tag badge-warning hidden" id="resultCardStatusTag">TANPA KARTU</span>
+              <span class="result-time-txt" id="resultTimeText">06:55:12</span>
+            </div>
+            <h3 class="result-student-name" id="resultStudentName">Ahmad Fauzi</h3>
+            <p class="result-sub-info" id="resultSubInfo">NISN: 0051234567 • Kelas: XII MIPA 1</p>
+            <p class="result-points-alert" id="resultPointsAlert"></p>
+          </div>
+          <div class="speed-pill" id="resultSpeed">12ms</div>
+        </div>
+
+      </section>
+
+      <!-- KOLOM KANAN: HANYA DAFTAR NAMA YANG HADIR -->
+      <aside class="attendance-section">
+        <div class="attendance-section-header">
+          <div class="title-with-counter">
+            <h2 class="attendance-title">Siswa Hadir Hari Ini</h2>
+            <span class="count-bubble" id="countTotal">0</span>
+          </div>
+
+          <!-- Ringkasan Singkat: Hadir, Kesiangan, Tanpa Kartu -->
+          <div class="mini-summary">
+            <span class="summary-badge ontime" title="Hadir Tepat Waktu">
+              ✅ <span id="countOnTime">0</span>
+            </span>
+            <span class="summary-badge late" title="Kesiangan">
+              ⏰ <span id="countLate">0</span>
+            </span>
+            <span class="summary-badge without-card" title="Tidak Bawa Kartu">
+              ⚠️ <span id="countWithoutCard">0</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- Pencarian Cepat Nama di Riwayat -->
+        <div class="history-search-bar">
+          <input type="text" id="searchHistoryInput" placeholder="Cari nama siswa yang sudah hadir...">
+        </div>
+
+        <!-- List Nama yang Hadir -->
+        <div class="attendance-scroll-list">
+          <ul id="attendanceList" class="clean-attendance-list">
+            <li class="empty-notice">
+              <span class="empty-emoji">📋</span>
+              <p>Belum ada siswa yang hadir hari ini.</p>
+              <small>Scan kartu siswa atau input manual untuk memulai.</small>
+            </li>
+          </ul>
+        </div>
+      </aside>
+
+    </main>
+  </div>
+
+  <!-- ================= 3. MODAL CATAT SISWA TANPA KARTU ================= -->
+  <div id="manualWithoutCardModal" class="modal-backdrop hidden">
+    <div class="modal-box modal-without-card-box">
+      <div class="modal-box-header">
+        <div class="modal-heading-wrap">
+          <span class="warning-icon">⚠️</span>
+          <div>
+            <h3>Catat Siswa Tidak Membawa Kartu</h3>
+            <p>Pencatatan kehadiran manual + otomatis dikenakan poin pelanggaran</p>
+          </div>
+        </div>
+        <button id="btnCloseWithoutCardModal" class="btn-close-modal">&times;</button>
+      </div>
+
+      <form id="formWithoutCard" class="modal-box-body">
+        <div class="form-group">
+          <label for="inputSearchStudent">Cari Nama Siswa atau NISN:</label>
+          <input type="text" id="inputSearchStudent" placeholder="Ketik nama atau NISN siswa..." autocomplete="off" required>
+          <!-- Live Autocomplete dropdown -->
+          <div id="studentSuggestions" class="suggestions-list hidden"></div>
+        </div>
+
+        <div class="student-preview-card" id="studentPreviewCard">
+          <div class="preview-avatar">👤</div>
+          <div>
+            <h4 id="previewStudentName" class="preview-name">Pilih siswa dari pencarian di atas</h4>
+            <p id="previewStudentDetails" class="preview-meta">NISN: - • Kelas: -</p>
+          </div>
+        </div>
+
+        <input type="hidden" id="selectedNisn" value="">
+        <input type="hidden" id="selectedName" value="">
+        <input type="hidden" id="selectedClass" value="">
+
+        <!-- Detail Poin Pelanggaran -->
+        <div class="violation-summary-box">
+          <div class="violation-row">
+            <span>Pelanggaran: <strong>Tidak Membawa Kartu ID</strong></span>
+            <span class="point-tag warning" id="previewPoinTanpaKartu">+5 Poin</span>
+          </div>
+          <div class="violation-row" id="rowLateViolation">
+            <span>Status Waktu Saat Ini: <strong id="previewTimeStatus">Tepat Waktu</strong></span>
+            <span class="point-tag ontime" id="previewPoinLate">0 Poin</span>
+          </div>
+          <div class="violation-total">
+            <span>Total Poin Pelanggaran:</span>
+            <strong id="previewTotalPoints" class="total-points-highlight">5 Poin</strong>
+          </div>
+        </div>
+
+        <div class="form-actions-row">
+          <button type="button" id="btnCancelWithoutCard" class="btn-cancel">Batal</button>
+          <button type="submit" id="btnSubmitWithoutCard" class="btn-confirm-save">
+            💾 Simpan Kehadiran (Tanpa Kartu)
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= 4. MODAL PENGATURAN SISTEM ================= -->
+  <div id="settingsModal" class="modal-backdrop hidden">
+    <div class="modal-box">
+      <div class="modal-box-header">
+        <div class="modal-heading-wrap">
+          <span class="settings-icon">⚙️</span>
+          <div>
+            <h3>Pengaturan Sistem Scanner</h3>
+            <p>Atur jam kehadiran, poin pelanggaran, PIN penjaga, dan integrasi spreadsheet</p>
+          </div>
+        </div>
+        <button id="btnCloseSettings" class="btn-close-modal">&times;</button>
+      </div>
+
+      <div class="modal-box-body">
+        <div class="settings-tabs-row">
+          <button class="setting-tab-btn active" data-tab="stRules">Jadwal & Aturan Poin</button>
+          <button class="setting-tab-btn" data-tab="stSecurity">PIN Petugas / Keamanan</button>
+          <button class="setting-tab-btn" data-tab="stSheets">Google Sheets & GAS</button>
+          <button class="setting-tab-btn" data-tab="stFirebase">Firebase Cloud</button>
+          <button class="setting-tab-btn" data-tab="stMaster">Data Master Siswa</button>
+        </div>
+
+        <!-- Tab 1: Jadwal & Poin -->
+        <div id="stRules" class="tab-pane active">
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label for="cfgJamMasuk">Jam Masuk Sekolah (WIB)</label>
+              <input type="time" id="cfgJamMasuk" value="07:00">
+            </div>
+            <div class="form-group">
+              <label for="cfgJamToleransi">Batas Akhir Toleransi (WIB)</label>
+              <input type="time" id="cfgJamToleransi" value="07:15">
+              <small>Lewat jam ini dihitung Kesiangan</small>
+            </div>
+            <div class="form-group">
+              <label for="cfgPoinPelanggaran">Poin Pelanggaran Kesiangan</label>
+              <input type="number" id="cfgPoinPelanggaran" value="5" min="0">
+            </div>
+            <div class="form-group">
+              <label for="cfgPoinTanpaKartu">Poin Tidak Membawa Kartu ID</label>
+              <input type="number" id="cfgPoinTanpaKartu" value="5" min="0">
+            </div>
+            <div class="form-group">
+              <label for="cfgCooldownScan">Cegah Double Scan (Menit)</label>
+              <input type="number" id="cfgCooldownScan" value="30" min="1">
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 2: Keamanan / PIN Petugas -->
+        <div id="stSecurity" class="tab-pane">
+          <div class="form-group">
+            <label for="cfgGuardPin">Ubah PIN Masuk Penjaga Sekolah</label>
+            <input type="password" id="cfgGuardPin" value="1234" maxlength="20">
+            <small>PIN ini digunakan saat penjaga sekolah pertama kali membuka aplikasi</small>
+          </div>
+          <div class="form-group">
+            <label for="cfgDefaultGuardName">Nama Petugas Default</label>
+            <input type="text" id="cfgDefaultGuardName" value="Penjaga Sekolah">
+          </div>
+        </div>
+
+        <!-- Tab 3: Google Sheets & E-Absensi -->
+        <div id="stSheets" class="tab-pane">
+          <div class="settings-help-box">
+            <p>💡 <strong>Deployment Terpisah (Standalone):</strong> Web App Google Apps Script cukup di-deploy <strong>1 kali saja</strong> secara mandiri di <a href="https://script.google.com" target="_blank" style="color: var(--cyan); text-decoration: underline;">script.google.com</a>. Setelah itu, Anda <strong>hanya perlu memasukkan ID Spreadsheet E-Absensi</strong> (atau tempel link spreadsheet) kapan pun berganti file presensi!</p>
+          </div>
+          <div class="form-group">
+            <label for="cfgSpreadsheetId">ID Spreadsheet E-Absensi Target <span style="color: var(--cyan); font-weight: 600;">(Wajib)</span></label>
+            <input type="text" id="cfgSpreadsheetId" placeholder="Contoh: 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms atau paste link spreadsheet">
+            <small>Salin ID dari URL Google Spreadsheet Anda (antara teks <code>/d/</code> dan <code>/edit</code>) atau tempel link URL lengkapnya.</small>
+          </div>
+          <div class="form-group">
+            <label for="cfgSheetName">Nama Tab Sheet Tujuan</label>
+            <input type="text" id="cfgSheetName" value="Presensi_Masuk" placeholder="Contoh: Presensi_Masuk atau Rekap_Harian">
+            <small>Data kehadiran akan dicatat ke tab sheet ini (dibuatkan otomatis lengkap dengan header jika tab belum ada).</small>
+          </div>
+          <div class="form-group">
+            <label for="cfgGasUrl">URL Web App Google Apps Script Terpusat</label>
+            <input type="text" id="cfgGasUrl" placeholder="https://script.google.com/macros/s/.../exec">
+            <small>URL hasil Deploy Standalone Web App di script.google.com (cukup diisi sekali untuk semua file spreadsheet).</small>
+          </div>
+          <div style="display: flex; gap: 10px; margin-top: 12px;">
+            <button id="btnTestGas" type="button" class="btn-secondary-action" style="flex: 1;">🧪 Test Koneksi E-Absensi</button>
+            <button id="btnSettingsManualSync" type="button" class="btn-secondary-action" style="flex: 1; border-color: var(--cyan); color: var(--cyan);">🔄 Sinkronkan Antrean Sekarang</button>
+          </div>
+        </div>
+
+        <!-- Tab 4: Firebase -->
+        <div id="stFirebase" class="tab-pane">
+          <div class="form-group">
+            <label for="cfgFbApiKey">Firebase API Key</label>
+            <input type="text" id="cfgFbApiKey" placeholder="AIzaSy...">
+          </div>
+          <div class="form-group">
+            <label for="cfgFbDatabaseUrl">Realtime Database URL</label>
+            <input type="text" id="cfgFbDatabaseUrl" placeholder="https://projek-absensi-default-rtdb.firebaseio.com">
+          </div>
+          <div class="form-group">
+            <label for="cfgFbProjectId">Firebase Project ID</label>
+            <input type="text" id="cfgFbProjectId" placeholder="projek-absensi">
+          </div>
+          <button id="btnTestFirebase" class="btn-secondary-action">Test Koneksi Firebase</button>
+        </div>
+
+        <!-- Tab 5: Master Data Siswa -->
+        <div id="stMaster" class="tab-pane">
+          <p class="tab-desc">Simpan data siswa agar saat scan / input manual nama siswa langsung otomatis muncul.</p>
+          <div class="form-group">
+            <label>Upload File CSV Siswa (Format: NISN, Nama, Kelas):</label>
+            <input type="file" id="cfgCsvMasterInput" accept=".csv">
+          </div>
+          <div class="form-group">
+            <label>Atau Paste Data Siswa CSV di Sini:</label>
+            <textarea id="cfgCsvMasterText" rows="5" placeholder="NISN,Nama,Kelas&#10;0051234567,Ahmad Fauzi,XII MIPA 1&#10;0051234568,Siti Nurhaliza,XII MIPA 2"></textarea>
+          </div>
+          <div class="master-bar">
+            <span>Siswa Tersimpan: <strong id="masterCount">0</strong> data</span>
+            <button id="btnSaveMasterData" class="btn-secondary-action">Simpan Master Siswa</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-box-footer">
+        <button id="btnExportCsv" class="btn-secondary-action">📥 Download CSV Hari Ini</button>
+        <button id="btnSaveSettings" class="btn-primary-action">Simpan Pengaturan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Toast Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="js/audio.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/firebase-service.js"></script>
+  <script src="js/sync-service.js"></script>
+  <script src="js/scanner.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
