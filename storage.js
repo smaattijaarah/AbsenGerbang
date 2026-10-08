@@ -38,7 +38,7 @@ class StorageService {
       // Google Sheets / Apps Script
       gasUrl: '',
       spreadsheetId: '',
-      sheetName: 'Presensi_Masuk',
+      sheetName: 'catatan_poin',
       syncInterval: 5
     };
 
