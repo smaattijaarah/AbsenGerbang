@@ -20,13 +20,13 @@ class StorageService {
       defaultGuardName: 'Penjaga Sekolah',
 
       // Time & Violation Rules
-      jamMasuk: '07:00',
-      jamToleransi: '07:15',
-      poinPelanggaran: 5,
-      poinTanpaKartu: 5,
-      kategoriTerlambat: 'Terlambat hadir di kelas lebih dari 10 menit.',
-      kategoriTanpaKartu: 'Tidak membawa ID Card',
-      cooldownMinutes: 30,
+      jamMasuk: '06:00',
+      jamToleransi: '06:40',
+      poinPelanggaran: 1,
+      poinTanpaKartu: 2,
+      kategoriTerlambat: 'Terlambat hadir di sekolah lebih dari 10 menit.',
+      kategoriTanpaKartu: 'Tidak Membawa ID Card/Kartu Pelajar',
+      cooldownMinutes: 1,
       soundEnabled: true,
       
       // Firebase
@@ -36,7 +36,7 @@ class StorageService {
       fbRootPath: 'presensi_harian',
       
       // Google Sheets / Apps Script
-      gasUrl: '',
+      gasUrl: 'https://script.google.com/macros/s/AKfycbxJBXtUYro80ZxGwSB68SCG9X9-ff2Bc8hye66_nCgQ8oPChm3v8Wmf7sdRJ0ELpg9Q/exec',
       spreadsheetId: '1zLU7R4rz2w-qLfHEauvE8s6Q6wYouMe52DBuznkZK74',
       sheetName: 'catatan_poin',
       syncInterval: 5
@@ -167,7 +167,15 @@ class StorageService {
     try {
       const raw = localStorage.getItem(this.KEYS.SETTINGS);
       if (!raw) return { ...this.defaultSettings };
-      return { ...this.defaultSettings, ...JSON.parse(raw) };
+      const parsed = JSON.parse(raw);
+      const res = { ...this.defaultSettings, ...parsed };
+      if (!res.gasUrl || res.gasUrl.trim() === '') {
+        res.gasUrl = this.defaultSettings.gasUrl;
+      }
+      if (!res.spreadsheetId || res.spreadsheetId.trim() === '') {
+        res.spreadsheetId = this.defaultSettings.spreadsheetId;
+      }
+      return res;
     } catch (e) {
       return { ...this.defaultSettings };
     }
