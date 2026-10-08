@@ -92,30 +92,63 @@ document.addEventListener('DOMContentLoaded', () => {
   function checkAuth() {
     const session = window.storageService.getGuardSession();
     if (session && session.guardName) {
-      activeGuardNameEl.textContent = `Petugas: ${session.guardName}`;
+      const roleBadge = session.role === 'admin' ? ' (Admin)' : '';
+      activeGuardNameEl.textContent = `Petugas: ${session.guardName}${roleBadge}`;
       loginScreen.classList.add('hidden');
       mainApp.classList.remove('hidden');
     } else {
       loginScreen.classList.remove('hidden');
       mainApp.classList.add('hidden');
       loginPin.value = '';
-      setTimeout(() => loginPin.focus(), 150);
+      setTimeout(() => {
+        if (!loginUsername.value) loginUsername.focus();
+        else loginPin.focus();
+      }, 150);
     }
   }
 
-  loginForm.addEventListener('submit', (e) => {
+  loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const settings = window.storageService.getSettings();
+    const btnSubmit = document.getElementById('btnLoginSubmit');
+    const enteredUsername = loginUsername.value.trim();
     const enteredPin = loginPin.value.trim();
-    const expectedPin = String(settings.guardPin || '1234').trim();
 
-    if (enteredPin === expectedPin) {
-      const name = loginUsername.value.trim() || 'Penjaga Sekolah';
-      window.storageService.saveGuardSession(name);
-      showToast(`Selamat bertugas, ${name}!`, 'success');
+    if (!enteredUsername || !enteredPin) {
+      showToast('Masukkan Nama Pengguna dan PIN terlebih dahulu.', 'warning');
+      return;
+    }
+
+    btnSubmit.disabled = true;
+    btnSubmit.style.opacity = '0.7';
+
+    // 1. Cek lokal (offline-first & super cepat)
+    let matchedUser = window.storageService.findUser(enteredUsername, enteredPin);
+
+    // 2. Jika tidak ditemukan di lokal, coba verifikasi online ke Google Spreadsheet
+    if (!matchedUser && navigator.onLine) {
+      try {
+        const onlineUser = await window.syncService.authenticateOnline(enteredUsername, enteredPin);
+        if (onlineUser) {
+          matchedUser = onlineUser;
+        }
+      } catch (_) {}
+    }
+
+    btnSubmit.disabled = false;
+    btnSubmit.style.opacity = '1';
+
+    if (matchedUser) {
+      window.storageService.saveGuardSession(matchedUser);
+      const roleTitle = matchedUser.role === 'admin' ? 'Administrator' : 'Petugas';
+      showToast(`Selamat bertugas, ${matchedUser.name || matchedUser.username}! (${roleTitle})`, 'success');
+      loginPin.value = '';
       checkAuth();
+      // Sinkronkan daftar pengguna terbaru jika online
+      if (navigator.onLine) {
+        window.syncService.fetchUsersFromSpreadsheet().then(() => renderUserTableUI());
+      }
     } else {
-      showToast('PIN yang Anda masukkan salah. Coba lagi.', 'error');
+      showToast('Nama Pengguna atau PIN salah. Silakan periksa kembali.', 'error');
       loginPin.select();
     }
   });
@@ -183,8 +216,11 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('cfgPoinTanpaKartu').value = settings.poinTanpaKartu || 5;
     document.getElementById('cfgCooldownScan').value = settings.cooldownMinutes || 30;
 
-    document.getElementById('cfgGuardPin').value = settings.guardPin || '1234';
-    document.getElementById('cfgDefaultGuardName').value = settings.defaultGuardName || 'Penjaga Sekolah';
+    const cfgGuardPinEl = document.getElementById('cfgGuardPin');
+    if (cfgGuardPinEl) cfgGuardPinEl.value = settings.guardPin || '1234';
+    const cfgDefaultGuardNameEl = document.getElementById('cfgDefaultGuardName');
+    if (cfgDefaultGuardNameEl) cfgDefaultGuardNameEl.value = settings.defaultGuardName || 'Penjaga Sekolah';
+    renderUserTableUI();
 
     document.getElementById('cfgGasUrl').value = settings.gasUrl || '';
     document.getElementById('cfgSpreadsheetId').value = settings.spreadsheetId || '';
@@ -710,8 +746,25 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   btnOpenSettings.addEventListener('click', () => {
-    applySettingsUI();
-    settingsModal.classList.remove('hidden');
+    const session = window.storageService.getGuardSession();
+    if (session && session.role === 'admin') {
+      applySettingsUI();
+      settingsModal.classList.remove('hidden');
+    } else {
+      // Petugas biasa mencoba membuka pengaturan: minta verifikasi PIN Admin
+      const adminPin = prompt('Akses Khusus Admin: Masukkan PIN Administrator untuk membuka Pengaturan:');
+      if (!adminPin) return;
+      const adminUser = window.storageService.getUsers().find(u => 
+        u.role === 'admin' && String(u.pin).trim() === adminPin.trim()
+      );
+      if (adminUser) {
+        applySettingsUI();
+        settingsModal.classList.remove('hidden');
+        showToast('Akses Administrator diberikan.', 'info');
+      } else {
+        showToast('PIN Administrator salah. Akses ditolak.', 'error');
+      }
+    }
   });
   btnCloseSettings.addEventListener('click', () => settingsModal.classList.add('hidden'));
 
@@ -743,6 +796,9 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('cfgSpreadsheetId').value = cleanSheetId;
     }
 
+    const cfgGuardPinEl = document.getElementById('cfgGuardPin');
+    const cfgDefaultGuardNameEl = document.getElementById('cfgDefaultGuardName');
+
     const newSettings = {
       jamMasuk: document.getElementById('cfgJamMasuk').value,
       jamToleransi: document.getElementById('cfgJamToleransi').value,
@@ -750,8 +806,8 @@ document.addEventListener('DOMContentLoaded', () => {
       poinTanpaKartu: parseInt(document.getElementById('cfgPoinTanpaKartu').value, 10) || 5,
       cooldownMinutes: parseInt(document.getElementById('cfgCooldownScan').value, 10) || 30,
 
-      guardPin: document.getElementById('cfgGuardPin').value.trim() || '1234',
-      defaultGuardName: document.getElementById('cfgDefaultGuardName').value.trim() || 'Penjaga Sekolah',
+      guardPin: cfgGuardPinEl ? cfgGuardPinEl.value.trim() : '1234',
+      defaultGuardName: cfgDefaultGuardNameEl ? cfgDefaultGuardNameEl.value.trim() : 'Penjaga Sekolah',
 
       gasUrl: document.getElementById('cfgGasUrl').value.trim(),
       spreadsheetId: cleanSheetId,
@@ -866,6 +922,146 @@ document.addEventListener('DOMContentLoaded', () => {
     btnTestFirebase.textContent = 'Test Koneksi Firebase';
     btnTestFirebase.disabled = false;
   });
+
+  // --- USER & ADMIN MANAGEMENT (GOOGLE SHEETS) ---
+  function renderUserTableUI() {
+    const tbody = document.getElementById('userListTableBody');
+    if (!tbody) return;
+    const users = window.storageService.getUsers();
+    tbody.innerHTML = '';
+
+    if (users.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" style="padding: 12px; text-align: center; color: var(--text-dim);">Belum ada data akun terdaftar.</td></tr>`;
+      return;
+    }
+
+    users.forEach(u => {
+      const tr = document.createElement('tr');
+      tr.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+      const roleBadge = u.role === 'admin' 
+        ? `<span style="background: rgba(139, 92, 246, 0.2); color: #c084fc; padding: 2px 7px; border-radius: 4px; font-weight: 600; font-size: 0.75rem;">ADMIN</span>`
+        : `<span style="background: rgba(56, 189, 248, 0.15); color: var(--cyan); padding: 2px 7px; border-radius: 4px; font-weight: 600; font-size: 0.75rem;">PETUGAS</span>`;
+
+      const statusColor = (u.status || 'Aktif') === 'Aktif' ? 'var(--emerald)' : 'var(--rose)';
+
+      tr.innerHTML = `
+        <td style="padding: 8px 10px; font-family: var(--font-mono); font-weight: 600;">${u.username}</td>
+        <td style="padding: 8px 10px;">${u.name || '-'}</td>
+        <td style="padding: 8px 10px;">${roleBadge}</td>
+        <td style="padding: 8px 10px; color: ${statusColor}; font-weight: 500;">${u.status || 'Aktif'}</td>
+        <td style="padding: 8px 10px; text-align: right;">
+          <button type="button" class="btn-edit-user" data-username="${u.username}" style="background: transparent; border: none; color: var(--cyan); cursor: pointer; padding: 4px 6px; font-size: 0.8rem;">✏️ Edit</button>
+          <button type="button" class="btn-delete-user" data-username="${u.username}" style="background: transparent; border: none; color: var(--rose); cursor: pointer; padding: 4px 6px; font-size: 0.8rem;">🗑️ Hapus</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    // Attach Edit listeners
+    tbody.querySelectorAll('.btn-edit-user').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const uname = btn.dataset.username;
+        const u = window.storageService.getUsers().find(x => x.username === uname);
+        if (u) {
+          document.getElementById('uFormUsername').value = u.username;
+          document.getElementById('uFormName').value = u.name || '';
+          document.getElementById('uFormPin').value = u.pin || '';
+          document.getElementById('uFormRole').value = u.role || 'petugas';
+          document.getElementById('formUserTitle').textContent = `✏️ Edit Akun: ${u.username}`;
+          document.getElementById('uFormPin').focus();
+        }
+      });
+    });
+
+    // Attach Delete listeners
+    tbody.querySelectorAll('.btn-delete-user').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const uname = btn.dataset.username;
+        const users = window.storageService.getUsers();
+        const admins = users.filter(x => x.role === 'admin');
+        const target = users.find(x => x.username === uname);
+
+        if (target && target.role === 'admin' && admins.length <= 1) {
+          showToast('Tidak dapat menghapus satu-satunya akun Administrator!', 'error');
+          return;
+        }
+
+        if (confirm(`Yakin ingin menghapus akun "${uname}" dari spreadsheet?`)) {
+          showToast(`Menghapus akun "${uname}"...`, 'info');
+          const res = await window.syncService.deleteUserFromSpreadsheet(uname);
+          showToast(res.message || 'Akun berhasil dihapus.', res.success ? 'success' : 'error');
+          renderUserTableUI();
+        }
+      });
+    });
+  }
+
+  const btnFetchUsers = document.getElementById('btnFetchUsersSpreadsheet');
+  if (btnFetchUsers) {
+    btnFetchUsers.addEventListener('click', async () => {
+      btnFetchUsers.disabled = true;
+      btnFetchUsers.textContent = 'Memuat...';
+      const res = await window.syncService.fetchUsersFromSpreadsheet();
+      btnFetchUsers.disabled = false;
+      btnFetchUsers.textContent = '🔄 Tarik dari Spreadsheet';
+      if (res.success) {
+        showToast(`Berhasil memuat ${res.count} akun pengguna dari spreadsheet!`, 'success');
+        renderUserTableUI();
+      } else {
+        showToast(`Gagal memuat: ${res.message}`, 'error');
+      }
+    });
+  }
+
+  const btnSaveUserSpreadsheet = document.getElementById('btnSaveUserSpreadsheet');
+  if (btnSaveUserSpreadsheet) {
+    btnSaveUserSpreadsheet.addEventListener('click', async () => {
+      const username = document.getElementById('uFormUsername').value.trim();
+      const name = document.getElementById('uFormName').value.trim() || username;
+      const pin = document.getElementById('uFormPin').value.trim();
+      const role = document.getElementById('uFormRole').value;
+
+      if (!username) {
+        showToast('Username wajib diisi!', 'warning');
+        return;
+      }
+      if (!pin || pin.length < 3) {
+        showToast('PIN minimal 3 karakter!', 'warning');
+        return;
+      }
+
+      btnSaveUserSpreadsheet.disabled = true;
+      btnSaveUserSpreadsheet.textContent = 'Menyimpan...';
+
+      const userObj = { username, name, pin, role, status: 'Aktif' };
+      const res = await window.syncService.saveUserToSpreadsheet(userObj);
+
+      btnSaveUserSpreadsheet.disabled = false;
+      btnSaveUserSpreadsheet.textContent = '💾 Simpan Akun ke Spreadsheet';
+
+      showToast(res.message || 'Akun berhasil disimpan!', res.success ? 'success' : 'error');
+
+      // Reset form
+      document.getElementById('uFormUsername').value = '';
+      document.getElementById('uFormName').value = '';
+      document.getElementById('uFormPin').value = '';
+      document.getElementById('uFormRole').value = 'petugas';
+      document.getElementById('formUserTitle').textContent = '➕ Tambah / Edit Akun Pengguna';
+
+      renderUserTableUI();
+    });
+  }
+
+  const btnResetUserForm = document.getElementById('btnResetUserForm');
+  if (btnResetUserForm) {
+    btnResetUserForm.addEventListener('click', () => {
+      document.getElementById('uFormUsername').value = '';
+      document.getElementById('uFormName').value = '';
+      document.getElementById('uFormPin').value = '';
+      document.getElementById('uFormRole').value = 'petugas';
+      document.getElementById('formUserTitle').textContent = '➕ Tambah / Edit Akun Pengguna';
+    });
+  }
 
   // Init
   checkAuth();
