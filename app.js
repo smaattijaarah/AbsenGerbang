@@ -384,12 +384,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusText = isLate ? 'Terlambat' : 'Tepat Waktu';
     const points = isLate ? (parseInt(settings.poinPelanggaran, 10) || 5) : 0;
 
-    const baseJam = settings.jamMasuk || '07:00';
-    const lateMinutes = calculateLateMinutes(currentTimeStr, baseJam);
     const tipe = isLate ? 'Pelanggaran' : 'Hadir';
     const keterangan = isLate 
-      ? `Terlambat hadir di kelas lebih dari ${lateMinutes} menit.` 
-      : 'Hadir tepat waktu di kelas.';
+      ? 'Terlambat hadir di kelas lebih dari 10 menit.' 
+      : 'Tepat Waktu';
 
     const studentInfo = window.storageService.lookupStudent(cleanNisn);
     const guardSession = window.storageService.getGuardSession();
@@ -511,6 +509,15 @@ document.addEventListener('DOMContentLoaded', () => {
     previewPoinLate.textContent = isLate ? `+${poinLate} Poin` : '0 Poin';
     previewPoinLate.className = `point-tag ${isLate ? 'warning' : 'ontime'}`;
     previewTotalPoints.textContent = `${totalPoin} Poin Pelanggaran`;
+
+    const selectViolationCategory = document.getElementById('selectViolationCategory');
+    if (selectViolationCategory) {
+      if (isLate) {
+        selectViolationCategory.value = 'Terlambat hadir di kelas lebih dari 10 menit. Tidak membawa ID Card';
+      } else {
+        selectViolationCategory.value = 'Tidak membawa ID Card';
+      }
+    }
   }
 
   btnOpenManualWithoutCard.addEventListener('click', () => {
@@ -620,12 +627,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const poinLate = isLate ? (parseInt(settings.poinPelanggaran, 10) || 5) : 0;
     const totalPoints = poinCard + poinLate;
 
-    const baseJam = settings.jamMasuk || '07:00';
-    const lateMinutes = calculateLateMinutes(currentTimeStr, baseJam);
+    const selectViolationCategory = document.getElementById('selectViolationCategory');
     const tipe = 'Pelanggaran';
-    const keterangan = isLate 
-      ? `Terlambat hadir di kelas lebih dari ${lateMinutes} menit dan tidak membawa kartu.` 
-      : 'Tidak membawa kartu presensi.';
+    const keterangan = selectViolationCategory && selectViolationCategory.value
+      ? selectViolationCategory.value
+      : (isLate ? 'Terlambat hadir di kelas lebih dari 10 menit. Tidak membawa ID Card' : 'Tidak membawa ID Card');
 
     const guardSession = window.storageService.getGuardSession();
     const guardUsername = guardSession ? (guardSession.username || guardSession.guardName) : 'admin1';
