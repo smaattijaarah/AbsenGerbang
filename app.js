@@ -423,6 +423,96 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+
+  // --- Presence Mode Switching (Masuk vs Pulang) ---
+  const btnModeMasuk = document.getElementById('btnModeMasuk');
+  const btnModePulang = document.getElementById('btnModePulang');
+  const pillModeMasuk = document.getElementById('pillModeMasuk');
+  const pillModePulang = document.getElementById('pillModePulang');
+  const subModeMasuk = document.getElementById('subModeMasuk');
+  const subModePulang = document.getElementById('subModePulang');
+
+  function updateScanModeUI() {
+    const mode = window.storageService.getScanMode();
+    const s = window.storageService.getSettings();
+
+    if (btnModeMasuk && btnModePulang) {
+      if (mode === 'pulang') {
+        btnModeMasuk.classList.remove('active');
+        btnModePulang.classList.add('active');
+        if (pillModeMasuk) { pillModeMasuk.className = 'mode-status-pill off'; pillModeMasuk.textContent = 'Non-Aktif'; }
+        if (pillModePulang) { pillModePulang.className = 'mode-status-pill on'; pillModePulang.textContent = 'Aktif (0 Poin)'; }
+      } else {
+        btnModeMasuk.classList.add('active');
+        btnModePulang.classList.remove('active');
+        if (pillModeMasuk) { pillModeMasuk.className = 'mode-status-pill on'; pillModeMasuk.textContent = 'Aktif'; }
+        if (pillModePulang) { pillModePulang.className = 'mode-status-pill off'; pillModePulang.textContent = 'Bebas Poin'; }
+      }
+    }
+
+    if (subModeMasuk) {
+      subModeMasuk.textContent = `Buka: ${s.jamMasukMulai || '06:00'} • Batas: ${s.jamToleransi || '06:40'} • Tutup: ${s.jamMasukSelesai || '08:00'}`;
+    }
+    if (subModePulang) {
+      subModePulang.textContent = `Mulai: ${s.jamPulangMulai || '15:00'} • Tutup: ${s.jamPulangSelesai || '18:00'} (0 Poin)`;
+    }
+
+    // Update status badge di atas scanner
+    const scannerModeIndicatorText = document.getElementById('scannerModeIndicatorText');
+    const statusDotPulse = document.querySelector('.status-dot-pulse');
+    if (scannerModeIndicatorText) {
+      if (mode === 'pulang') {
+        scannerModeIndicatorText.textContent = 'Mode: Keluar (0 Poin)';
+        if (statusDotPulse) {
+          statusDotPulse.style.background = '#818cf8';
+          statusDotPulse.style.boxShadow = '0 0 8px #818cf8';
+        }
+      } else {
+        scannerModeIndicatorText.textContent = 'Mode: Masuk';
+        if (statusDotPulse) {
+          statusDotPulse.style.background = '#10b981';
+          statusDotPulse.style.boxShadow = '0 0 8px #10b981';
+        }
+      }
+    }
+
+    // Rules footer update
+    const rfItem1 = document.getElementById('rfItem1');
+    const rfItem2 = document.getElementById('rfItem2');
+    const rfItem3 = document.getElementById('rfItem3');
+    const rfItem4 = document.getElementById('rfItem4');
+
+    if (rfItem1 && rfItem2 && rfItem3 && rfItem4) {
+      if (mode === 'pulang') {
+        rfItem1.innerHTML = `Buka Pulang: <strong>${s.jamPulangMulai || '15:00'}</strong>`;
+        rfItem2.innerHTML = `Tutup: <strong>${s.jamPulangSelesai || '18:00'}</strong>`;
+        rfItem3.innerHTML = `Aturan Poin: <strong>0 Poin</strong>`;
+        rfItem4.innerHTML = `Status: <strong style="color: #818cf8;">Bebas Sanksi</strong>`;
+      } else {
+        rfItem1.innerHTML = `Buka Masuk: <strong>${s.jamMasukMulai || '06:00'}</strong>`;
+        rfItem2.innerHTML = `Toleransi: <strong>${s.jamToleransi || '06:40'}</strong>`;
+        rfItem3.innerHTML = `Tutup: <strong>${s.jamMasukSelesai || '08:00'}</strong>`;
+        rfItem4.innerHTML = `Terlambat: <strong>${s.poinPelanggaran || 1}</strong> Poin`;
+      }
+    }
+  }
+
+  if (btnModeMasuk) {
+    btnModeMasuk.addEventListener('click', () => {
+      window.storageService.saveScanMode('masuk');
+      updateScanModeUI();
+      showToast('🌅 Mode aktif: Presensi Masuk', 'info');
+    });
+  }
+
+  if (btnModePulang) {
+    btnModePulang.addEventListener('click', () => {
+      window.storageService.saveScanMode('pulang');
+      updateScanModeUI();
+      showToast('🌇 Mode aktif: Presensi Keluar', 'info');
+    });
+  }
+
   function onCodeScanned(code, source = 'usb_hardware') {
     const startTime = performance.now();
     const cleanNisn = String(code || '').trim();
