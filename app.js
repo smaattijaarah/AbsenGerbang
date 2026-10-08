@@ -240,7 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('cfgGasUrl').value = settings.gasUrl || '';
     document.getElementById('cfgSpreadsheetId').value = settings.spreadsheetId || '';
-    document.getElementById('cfgSheetName').value = settings.sheetName || 'Presensi_Masuk';
+    document.getElementById('cfgSheetName').value = settings.sheetName || 'catatan_poin';
 
     document.getElementById('cfgFbApiKey').value = settings.fbApiKey || '';
     document.getElementById('cfgFbDatabaseUrl').value = settings.fbDatabaseUrl || '';
@@ -893,7 +893,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (inCooldown) inCooldown.value = s.cooldownMinutes || 30;
     if (inGasUrl) inGasUrl.value = s.gasUrl || '';
     if (inSpreadsheetId) inSpreadsheetId.value = s.spreadsheetId || '';
-    if (inSheetName) inSheetName.value = s.sheetName || 'Presensi_Masuk';
+    if (inSheetName) inSheetName.value = s.sheetName || 'catatan_poin';
     if (inFbApiKey) inFbApiKey.value = s.fbApiKey || '';
     if (inFbDatabaseUrl) inFbDatabaseUrl.value = s.fbDatabaseUrl || '';
     if (inFbProjectId) inFbProjectId.value = s.fbProjectId || '';
@@ -1010,7 +1010,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       gasUrl: document.getElementById('cfgGasUrl').value.trim(),
       spreadsheetId: cleanSheetId,
-      sheetName: document.getElementById('cfgSheetName').value.trim() || 'Presensi_Masuk',
+      sheetName: document.getElementById('cfgSheetName').value.trim() || 'catatan_poin',
 
       fbApiKey: document.getElementById('cfgFbApiKey').value.trim(),
       fbDatabaseUrl: document.getElementById('cfgFbDatabaseUrl').value.trim(),
