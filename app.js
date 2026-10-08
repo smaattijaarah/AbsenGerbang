@@ -1396,6 +1396,42 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Tombol Salin Link Siap Pakai
+  const btnCopyQuickLink = document.getElementById('btnCopyQuickLink');
+  if (btnCopyQuickLink) {
+    btnCopyQuickLink.addEventListener('click', () => {
+      const s = window.storageService.getSettings();
+      if (!s.gasUrl) {
+        showToast('Isi URL Web App terlebih dahulu sebelum menyalin link!', 'warning');
+        return;
+      }
+      const baseUrl = window.location.origin + window.location.pathname;
+      const shareUrl = `${baseUrl}?gasUrl=${encodeURIComponent(s.gasUrl)}&sheetId=${encodeURIComponent(s.spreadsheetId || '')}`;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(shareUrl).then(() => {
+          showToast('📋 Link siap pakai berhasil disalin ke clipboard! Buka link ini di browser/HP lain.', 'success');
+        }).catch(() => {
+          prompt('Salin link siap pakai ini dan buka di browser lain:', shareUrl);
+        });
+      } else {
+        prompt('Salin link siap pakai ini dan buka di browser lain:', shareUrl);
+      }
+    });
+  }
+
+  // Auto-detect config from URL parameters (e.g. ?gasUrl=https://script.google.com/.../exec)
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    const paramGasUrl = urlParams.get('gasUrl');
+    const paramSheetId = urlParams.get('sheetId');
+    if (paramGasUrl) {
+      const updates = { gasUrl: decodeURIComponent(paramGasUrl).trim() };
+      if (paramSheetId) updates.spreadsheetId = decodeURIComponent(paramSheetId).trim();
+      window.storageService.saveSettings(updates);
+      showToast('✓ Konfigurasi Google Sheets berhasil diimpor otomatis dari Link!', 'success');
+    }
+  } catch (_) {}
+
   // Init
   checkAuth();
   applySettingsUI();
