@@ -135,15 +135,17 @@ document.addEventListener('DOMContentLoaded', () => {
     btnSubmit.disabled = true;
     btnSubmit.style.opacity = '0.7';
 
-    // 1. Cek lokal (offline-first & super cepat)
-    let matchedUser = window.storageService.findUser(enteredUsername, enteredPin);
+    // 1. Cek lokal (offline-first, periksa password, hari piket, dan batas 2 perangkat)
+    let loginResult = window.storageService.validateUserLogin(enteredUsername, enteredPin);
 
-    // 2. Jika tidak ditemukan di lokal, coba verifikasi online ke Google Spreadsheet
-    if (!matchedUser && navigator.onLine) {
+    // 2. Jika tidak ditemukan di lokal dan sedang online, verifikasi ke Spreadsheet
+    if (!loginResult.success && loginResult.reason === 'not_found' && navigator.onLine) {
       try {
-        const onlineUser = await window.syncService.authenticateOnline(enteredUsername, enteredPin);
-        if (onlineUser) {
-          matchedUser = onlineUser;
+        const onlineRes = await window.syncService.authenticateOnline(enteredUsername, enteredPin);
+        if (onlineRes && onlineRes.success && onlineRes.user) {
+          loginResult = window.storageService.validateUserLogin(enteredUsername, enteredPin);
+        } else if (onlineRes && !onlineRes.success && onlineRes.message) {
+          loginResult = { success: false, message: onlineRes.message };
         }
       } catch (_) {}
     }
@@ -151,18 +153,21 @@ document.addEventListener('DOMContentLoaded', () => {
     btnSubmit.disabled = false;
     btnSubmit.style.opacity = '1';
 
-    if (matchedUser) {
+    if (loginResult.success && loginResult.user) {
+      const matchedUser = loginResult.user;
       window.storageService.saveGuardSession(matchedUser);
       const roleTitle = matchedUser.role === 'admin' ? 'Administrator' : 'Petugas';
       showToast(`Selamat bertugas, ${matchedUser.name || matchedUser.username}! (${roleTitle})`, 'success');
       loginPin.value = '';
       checkAuth();
-      // Sinkronkan daftar pengguna terbaru jika online
+      // Sinkronkan daftar pengguna & simpan pendaftaran perangkat ke Spreadsheet jika online
       if (navigator.onLine) {
-        window.syncService.fetchUsersFromSpreadsheet().then(() => renderUserTableUI());
+        window.syncService.saveUserToSpreadsheet(matchedUser).then(() => {
+          window.syncService.fetchUsersFromSpreadsheet().then(() => renderUserTableUI());
+        });
       }
     } else {
-      showToast('Nama Pengguna atau PIN salah. Silakan periksa kembali.', 'error');
+      showToast(loginResult.message || 'Nama Pengguna atau PIN salah. Silakan periksa kembali.', 'error');
       loginPin.select();
     }
   });
@@ -1570,18 +1575,41 @@ document.addEventListener('DOMContentLoaded', () => {
         : `<span style="background: rgba(56, 189, 248, 0.15); color: var(--cyan); padding: 2px 7px; border-radius: 4px; font-weight: 600; font-size: 0.75rem;">PETUGAS</span>`;
 
       const statusColor = (u.status || 'Aktif') === 'Aktif' ? 'var(--emerald)' : 'var(--rose)';
+      const userDevices = Array.isArray(u.devices) ? u.devices : (typeof u.devices === 'string' && u.devices ? u.devices.split(',').filter(Boolean) : []);
+      const devCount = userDevices.length;
+      const devBadge = devCount >= 2 
+        ? `<span style="background: rgba(239, 68, 68, 0.2); color: #f87171; padding: 2px 6px; border-radius: 4px; font-weight: 600; font-size: 0.75rem;" title="Maksimal 2 perangkat tercapai">2/2 Terkunci</span>`
+        : `<span style="background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 2px 6px; border-radius: 4px; font-weight: 600; font-size: 0.75rem;">${devCount}/2 HP</span>`;
+
+      const dayText = u.allowedDays || 'Semua Hari';
 
       tr.innerHTML = `
         <td style="padding: 8px 10px; font-family: var(--font-mono); font-weight: 600;">${u.username}</td>
         <td style="padding: 8px 10px;">${u.name || '-'}</td>
         <td style="padding: 8px 10px;">${roleBadge}</td>
+        <td style="padding: 8px 10px; font-size: 0.8rem; color: #cbd5e1;">${dayText}</td>
+        <td style="padding: 8px 10px;">${devBadge}</td>
         <td style="padding: 8px 10px; color: ${statusColor}; font-weight: 500;">${u.status || 'Aktif'}</td>
-        <td style="padding: 8px 10px; text-align: right;">
+        <td style="padding: 8px 10px; text-align: right; white-space: nowrap;">
+          <button type="button" class="btn-reset-dev" data-username="${u.username}" title="Reset perangkat terdaftar" style="background: transparent; border: none; color: #fbbf24; cursor: pointer; padding: 4px 6px; font-size: 0.8rem;">🔄 Reset HP</button>
           <button type="button" class="btn-edit-user" data-username="${u.username}" style="background: transparent; border: none; color: var(--cyan); cursor: pointer; padding: 4px 6px; font-size: 0.8rem;">✏️ Edit</button>
           <button type="button" class="btn-delete-user" data-username="${u.username}" style="background: transparent; border: none; color: var(--rose); cursor: pointer; padding: 4px 6px; font-size: 0.8rem;">🗑️ Hapus</button>
         </td>
       `;
       tbody.appendChild(tr);
+    });
+
+    // Attach Reset Device listeners
+    tbody.querySelectorAll('.btn-reset-dev').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const uname = btn.dataset.username;
+        if (confirm(`Reset daftar perangkat untuk akun "${uname}"?\n\nSetelah di-reset, akun ini dapat login dari HP/Laptop baru (maksimal 2 perangkat lagi).`)) {
+          showToast(`Mereset perangkat untuk "${uname}"...`, 'info');
+          const res = await window.syncService.resetUserDevicesInSpreadsheet(uname);
+          showToast(res.message || 'Perangkat berhasil di-reset.', res.success ? 'success' : 'info');
+          renderUserTableUI();
+        }
+      });
     });
 
     // Attach Edit listeners
@@ -1594,6 +1622,8 @@ document.addEventListener('DOMContentLoaded', () => {
           document.getElementById('uFormName').value = u.name || '';
           document.getElementById('uFormPin').value = u.pin || '';
           document.getElementById('uFormRole').value = u.role || 'petugas';
+          const selDays = document.getElementById('uFormAllowedDays');
+          if (selDays) selDays.value = u.allowedDays || 'Semua Hari';
           document.getElementById('formUserTitle').textContent = `✏️ Edit Akun: ${u.username}`;
           document.getElementById('uFormPin').focus();
         }
@@ -1647,6 +1677,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const name = document.getElementById('uFormName').value.trim() || username;
       const pin = document.getElementById('uFormPin').value.trim();
       const role = document.getElementById('uFormRole').value;
+      const allowedDays = document.getElementById('uFormAllowedDays') ? document.getElementById('uFormAllowedDays').value : 'Semua Hari';
 
       if (!username) {
         showToast('Username wajib diisi!', 'warning');
@@ -1660,7 +1691,11 @@ document.addEventListener('DOMContentLoaded', () => {
       btnSaveUserSpreadsheet.disabled = true;
       btnSaveUserSpreadsheet.textContent = 'Menyimpan...';
 
-      const userObj = { username, name, pin, role, status: 'Aktif' };
+      // Pertahankan data perangkat jika akun sedang diedit
+      const existingUser = window.storageService.getUsers().find(x => x.username.toLowerCase() === username.toLowerCase());
+      const devices = existingUser ? (existingUser.devices || []) : [];
+
+      const userObj = { username, name, pin, role, status: 'Aktif', allowedDays, devices };
       const res = await window.syncService.saveUserToSpreadsheet(userObj);
 
       btnSaveUserSpreadsheet.disabled = false;
@@ -1679,6 +1714,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('uFormName').value = '';
       document.getElementById('uFormPin').value = '';
       document.getElementById('uFormRole').value = 'petugas';
+      if (document.getElementById('uFormAllowedDays')) document.getElementById('uFormAllowedDays').value = 'Semua Hari';
       document.getElementById('formUserTitle').textContent = '➕ Tambah / Edit Akun Pengguna';
 
       renderUserTableUI();
@@ -1692,6 +1728,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('uFormName').value = '';
       document.getElementById('uFormPin').value = '';
       document.getElementById('uFormRole').value = 'petugas';
+      if (document.getElementById('uFormAllowedDays')) document.getElementById('uFormAllowedDays').value = 'Semua Hari';
       document.getElementById('formUserTitle').textContent = '➕ Tambah / Edit Akun Pengguna';
     });
   }
