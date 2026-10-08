@@ -75,13 +75,11 @@ class SyncService {
           records: batch
         };
 
-        // Google Apps Script doPost is best sent with text/plain to prevent CORS preflight OPTIONS rejection
+        // Kirim via POST dengan Blob text/plain murni agar tidak memicu CORS preflight OPTIONS
+        const blob = new Blob([JSON.stringify(payload)], { type: 'text/plain' });
         const response = await fetch(settings.gasUrl, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'text/plain;charset=utf-8'
-          },
-          body: JSON.stringify(payload),
+          body: blob,
           redirect: 'follow'
         });
 
@@ -123,6 +121,7 @@ class SyncService {
 
   /**
    * Quick Ping Test to GAS Web App & Verify Spreadsheet Connection
+   * Menggunakan GET terlebih dahulu (100% bebas dari blokir CORS preflight)
    */
   async testGasConnection() {
     const settings = window.storageService.getSettings();
@@ -130,18 +129,60 @@ class SyncService {
       return { success: false, message: 'URL Web App GAS belum diisi.' };
     }
 
+    const cleanUrl = settings.gasUrl.trim();
+    if (!cleanUrl.startsWith('http')) {
+      return { success: false, message: 'URL Web App harus diawali dengan https://' };
+    }
+    if (cleanUrl.endsWith('/dev')) {
+      return { 
+        success: false, 
+        message: 'URL Anda berakhiran /dev. Web App untuk publik HARUS berakhiran /exec (salin dari New Deployment).' 
+      };
+    }
+
+    const rawId = settings.spreadsheetId || '';
+    const cleanId = rawId.match(/\/d\/([a-zA-Z0-9_-]+)/) ? rawId.match(/\/d\/([a-zA-Z0-9_-]+)/)[1] : rawId.trim();
+    const sheetName = settings.sheetName || 'Presensi_Masuk';
+
+    // 1. Coba tes via GET terlebih dahulu (Sangat aman dari blokir CORS preflight browser)
+    try {
+      const getUrl = new URL(cleanUrl);
+      getUrl.searchParams.set('action', 'ping');
+      if (cleanId) getUrl.searchParams.set('spreadsheetId', cleanId);
+      getUrl.searchParams.set('sheetName', sheetName);
+      getUrl.searchParams.set('_t', Date.now());
+
+      const res = await fetch(getUrl.toString(), {
+        method: 'GET',
+        redirect: 'follow',
+        cache: 'no-cache'
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.status === 'error') {
+          return { success: false, message: data.message || 'Gagal membuka Spreadsheet target' };
+        }
+        return { success: true, message: data.message || 'Koneksi ke Web App GAS Berhasil!' };
+      }
+    } catch (getErr) {
+      console.warn('GET ping failed, trying POST fallback:', getErr.message);
+    }
+
+    // 2. Fallback POST menggunakan Blob text/plain murni
     try {
       const testPayload = {
         action: 'ping',
-        spreadsheetId: settings.spreadsheetId || '',
-        sheetName: settings.sheetName || 'Presensi_Masuk',
+        spreadsheetId: cleanId,
+        sheetName: sheetName,
         timestamp: Date.now()
       };
 
-      const res = await fetch(settings.gasUrl, {
+      const blob = new Blob([JSON.stringify(testPayload)], { type: 'text/plain' });
+
+      const res = await fetch(cleanUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(testPayload),
+        body: blob,
         redirect: 'follow'
       });
 
@@ -158,7 +199,7 @@ class SyncService {
     } catch (e) {
       return { 
         success: false, 
-        message: `Gagal memanggil GAS: ${e.message}. Pastikan Web App di-deploy dengan akses 'Anyone' (Siapa saja).` 
+        message: `Gagal memanggil GAS: ${e.message}. Pastikan URL berakhiran /exec dan skrip di-deploy dengan akun Gmail biasa (bebas blokir domain).` 
       };
     }
   }
@@ -172,15 +213,37 @@ class SyncService {
       return { success: false, message: 'URL GAS atau ID Spreadsheet belum diisi.' };
     }
 
+    const cleanUrl = settings.gasUrl.trim();
+    const rawId = settings.spreadsheetId || '';
+    const cleanId = rawId.match(/\/d\/([a-zA-Z0-9_-]+)/) ? rawId.match(/\/d\/([a-zA-Z0-9_-]+)/)[1] : rawId.trim();
+
+    // 1. Coba via GET terlebih dahulu
+    try {
+      const getUrl = new URL(cleanUrl);
+      getUrl.searchParams.set('action', 'get_users');
+      getUrl.searchParams.set('spreadsheetId', cleanId);
+      getUrl.searchParams.set('_t', Date.now());
+
+      const res = await fetch(getUrl.toString(), { method: 'GET', redirect: 'follow', cache: 'no-cache' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.status === 'success' && Array.isArray(data.users)) {
+          window.storageService.setUsers(data.users);
+          return { success: true, count: data.users.length, users: data.users };
+        }
+      }
+    } catch (_) {}
+
+    // 2. Fallback via POST
     try {
       const payload = {
         action: 'get_users',
-        spreadsheetId: settings.spreadsheetId
+        spreadsheetId: cleanId
       };
-      const res = await fetch(settings.gasUrl, {
+      const blob = new Blob([JSON.stringify(payload)], { type: 'text/plain' });
+      const res = await fetch(cleanUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(payload),
+        body: blob,
         redirect: 'follow'
       });
       const data = await res.json();
@@ -210,10 +273,10 @@ class SyncService {
         spreadsheetId: settings.spreadsheetId,
         user: user
       };
+      const blob = new Blob([JSON.stringify(payload)], { type: 'text/plain' });
       const res = await fetch(settings.gasUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(payload),
+        body: blob,
         redirect: 'follow'
       });
       const data = await res.json();
@@ -244,10 +307,10 @@ class SyncService {
         spreadsheetId: settings.spreadsheetId,
         username: username
       };
+      const blob = new Blob([JSON.stringify(payload)], { type: 'text/plain' });
       const res = await fetch(settings.gasUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(payload),
+        body: blob,
         redirect: 'follow'
       });
       const data = await res.json();
@@ -276,10 +339,10 @@ class SyncService {
         username: username,
         pin: pin
       };
+      const blob = new Blob([JSON.stringify(payload)], { type: 'text/plain' });
       const res = await fetch(settings.gasUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(payload),
+        body: blob,
         redirect: 'follow'
       });
       const data = await res.json();
