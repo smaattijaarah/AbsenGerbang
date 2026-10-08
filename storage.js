@@ -227,7 +227,18 @@ class StorageService {
   }
 
   saveMasterStudents(map) {
-    localStorage.setItem(this.KEYS.MASTER_STUDENTS, JSON.stringify(map));
+    const normalized = { ...map };
+    for (const k in map) {
+      const clean = String(k).trim();
+      const noZero = clean.replace(/^0+/, '');
+      if (noZero && !normalized[noZero]) {
+        normalized[noZero] = map[k];
+      }
+      if (clean.length === 9 && !clean.startsWith('0')) {
+        normalized['0' + clean] = map[k];
+      }
+    }
+    localStorage.setItem(this.KEYS.MASTER_STUDENTS, JSON.stringify(normalized));
   }
 
   lookupStudent(nisn) {
@@ -236,6 +247,18 @@ class StorageService {
     if (master[cleanNisn]) {
       return master[cleanNisn];
     }
+    
+    // Fallback pencocokan format tanpa 0 di depan (contoh 0104020357 vs 104020357)
+    const noLeading = cleanNisn.replace(/^0+/, '');
+    if (noLeading && master[noLeading]) {
+      return master[noLeading];
+    }
+    for (const k in master) {
+      if (String(k).replace(/^0+/, '') === noLeading) {
+        return master[k];
+      }
+    }
+
     return {
       name: `Siswa (${cleanNisn})`,
       class: 'Umum / Terdaftar',
