@@ -957,6 +957,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     const res = await window.syncService.testGasConnection();
     showToast(res.message, res.success ? 'success' : 'error');
+    if (res.success) {
+      window.syncService.fetchStudentsFromSpreadsheet().then(sRes => {
+        if (sRes && sRes.success) {
+          showToast(`Berhasil memuat ${sRes.count} data siswa dari tab '${sRes.sheetName}'!`, 'success');
+          if (masterCountEl) masterCountEl.textContent = sRes.count;
+        }
+      });
+    }
     btnTestGas.textContent = '🧪 Test Koneksi E-Absensi';
     btnTestGas.disabled = false;
   });
@@ -1137,4 +1145,17 @@ document.addEventListener('DOMContentLoaded', () => {
   checkAuth();
   applySettingsUI();
   renderAttendanceUI();
+
+  // Auto-sync master data siswa dari Spreadsheet jika belum ada data di lokal
+  setTimeout(async () => {
+    try {
+      const currentMaster = window.storageService.getMasterStudents();
+      if (Object.keys(currentMaster).length === 0) {
+        const sRes = await window.syncService.fetchStudentsFromSpreadsheet();
+        if (sRes && sRes.success && masterCountEl) {
+          masterCountEl.textContent = sRes.count;
+        }
+      }
+    } catch (_) {}
+  }, 1200);
 });
