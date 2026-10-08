@@ -37,7 +37,7 @@ class StorageService {
       
       // Google Sheets / Apps Script
       gasUrl: '',
-      spreadsheetId: '',
+      spreadsheetId: '1zLU7R4rz2w-qLfHEauvE8s6Q6wYouMe52DBuznkZK74',
       sheetName: 'catatan_poin',
       syncInterval: 5
     };
