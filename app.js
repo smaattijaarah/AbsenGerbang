@@ -1145,6 +1145,13 @@ document.addEventListener('DOMContentLoaded', () => {
       window.soundEngine.ttsEnabled = (s.ttsEnabled !== false);
     }
 
+    const inTtsTemplateMasuk = document.getElementById('cfgTtsTemplateMasuk');
+    const inTtsTemplateTerlambat = document.getElementById('cfgTtsTemplateTerlambat');
+    const inTtsTemplatePulang = document.getElementById('cfgTtsTemplatePulang');
+    if (inTtsTemplateMasuk) inTtsTemplateMasuk.value = s.ttsTemplateMasuk || 'Terima kasih, {nama}!';
+    if (inTtsTemplateTerlambat) inTtsTemplateTerlambat.value = s.ttsTemplateTerlambat || 'Perhatian, {nama}, Anda terlambat.';
+    if (inTtsTemplatePulang) inTtsTemplatePulang.value = s.ttsTemplatePulang || 'Terima kasih, {nama}, selamat jalan.';
+
     const inPoinPelanggaran = document.getElementById('cfgPoinPelanggaran');
     const inPoinTanpaKartu = document.getElementById('cfgPoinTanpaKartu');
     const inCooldown = document.getElementById('cfgCooldownScan');
@@ -1284,6 +1291,9 @@ document.addEventListener('DOMContentLoaded', () => {
       kategoriTanpaKartu: selTanpaKartu ? selTanpaKartu.value : 'Tidak membawa ID Card',
       cooldownMinutes: parseInt(document.getElementById('cfgCooldownScan').value, 10) || 30,
       ttsEnabled: document.getElementById('cfgTtsEnabled') ? document.getElementById('cfgTtsEnabled').checked : true,
+      ttsTemplateMasuk: document.getElementById('cfgTtsTemplateMasuk') ? document.getElementById('cfgTtsTemplateMasuk').value.trim() : 'Terima kasih, {nama}!',
+      ttsTemplateTerlambat: document.getElementById('cfgTtsTemplateTerlambat') ? document.getElementById('cfgTtsTemplateTerlambat').value.trim() : 'Perhatian, {nama}, Anda terlambat.',
+      ttsTemplatePulang: document.getElementById('cfgTtsTemplatePulang') ? document.getElementById('cfgTtsTemplatePulang').value.trim() : 'Terima kasih, {nama}, selamat jalan.',
 
       guardPin: cfgGuardPinEl ? cfgGuardPinEl.value.trim() : '1234',
       defaultGuardName: cfgDefaultGuardNameEl ? cfgDefaultGuardNameEl.value.trim() : 'Penjaga Sekolah',
