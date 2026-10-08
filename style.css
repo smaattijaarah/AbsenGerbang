@@ -191,14 +191,15 @@ body {
 }
 
 .app-header-simple {
-  height: 64px;
-  background: rgba(17, 24, 39, 0.9);
+  min-height: 64px;
+  background: rgba(17, 24, 39, 0.95);
   backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
+  padding: 10px 24px;
   position: sticky;
   top: 0;
   z-index: 40;
@@ -208,6 +209,7 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex: 1;
 }
 
 .guard-pill {
@@ -221,6 +223,7 @@ body {
   font-size: 0.8rem;
   font-weight: 600;
   color: #e2e8f0;
+  white-space: nowrap;
 }
 
 .guard-dot {
@@ -234,12 +237,18 @@ body {
 .date-badge {
   font-size: 0.75rem;
   color: var(--text-muted);
+  white-space: nowrap;
 }
 
 .header-center {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.mobile-date-text {
+  display: none;
 }
 
 .header-clock {
@@ -253,7 +262,9 @@ body {
 .header-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: flex-end;
+  gap: 8px;
+  flex: 1;
 }
 
 .status-indicator {
@@ -1247,9 +1258,148 @@ body {
 @media (max-width: 900px) {
   .simple-layout {
     grid-template-columns: 1fr;
+    padding: 12px 14px;
+    gap: 16px;
   }
   .attendance-section {
     height: auto;
     min-height: 380px;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Header Responsive Mobile */
+  .app-header-simple {
+    min-height: auto;
+    padding: 10px 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: space-between;
+  }
+
+  .header-left {
+    flex: 1 1 auto;
+    min-width: 130px;
+    gap: 8px;
+  }
+
+  .header-left .date-badge {
+    display: none; /* Sembunyikan tanggal di baris atas agar muat, pindah ke baris waktu */
+  }
+
+  .header-right {
+    flex: 0 0 auto;
+    gap: 6px;
+  }
+
+  .sync-label,
+  .btn-logout-label {
+    display: none; /* Icon saja di layar HP agar hemat ruang */
+  }
+
+  .btn-header-action {
+    height: 32px;
+    padding: 0 8px;
+    font-size: 0.78rem;
+  }
+
+  .status-indicator {
+    padding: 4px 8px;
+    font-size: 0.72rem;
+  }
+
+  .header-center {
+    width: 100%;
+    order: 3;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 6px 14px;
+    margin-top: 2px;
+  }
+
+  .mobile-date-text {
+    display: inline-block;
+    font-size: 0.76rem;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  .header-clock {
+    font-size: 1.15rem;
+  }
+
+  /* Scanner Header Switch & Button Tanpa Kartu */
+  .scanner-header-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .scanner-mode-switch {
+    width: 100%;
+    display: flex;
+  }
+
+  .scanner-mode-switch .btn-tab {
+    flex: 1;
+    text-align: center;
+    justify-content: center;
+    padding: 9px 8px;
+    font-size: 0.76rem;
+  }
+
+  .btn-without-card {
+    width: 100%;
+    justify-content: center;
+    padding: 11px;
+    font-size: 0.85rem;
+  }
+
+  /* Target Area Scanner */
+  .scanner-target-zone {
+    padding: 30px 16px;
+  }
+  .scanner-title {
+    font-size: 1.15rem;
+  }
+  .scanner-subtitle {
+    font-size: 0.76rem;
+  }
+  .manual-input-box {
+    max-width: 100%;
+  }
+
+  /* Rules footer */
+  .rules-footer {
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    font-size: 0.72rem;
+    padding: 10px 12px;
+    text-align: center;
+  }
+
+  /* Modals */
+  .modal-backdrop {
+    padding: 10px;
+  }
+  .modal-box {
+    border-radius: 16px;
+    max-height: 94vh;
+  }
+  .modal-box-header {
+    padding: 14px 16px;
+  }
+  .modal-box-body {
+    padding: 14px 16px;
+  }
+  .form-grid-2 {
+    grid-template-columns: 1fr;
+    gap: 8px;
   }
 }
