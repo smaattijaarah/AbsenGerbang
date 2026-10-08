@@ -510,6 +510,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const alreadyPulang = records.find(r => r.nisn === cleanNisn && (r.mode === 'pulang' || r.type === 'Pulang'));
         if (alreadyPulang) {
           window.soundEngine.playDuplicate();
+          window.soundEngine.speakStudent(alreadyPulang.name || studentInfo.name, 'duplicate');
           showResultBanner({
             nisn: cleanNisn,
             name: alreadyPulang.name,
@@ -527,6 +528,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Pulang Berhasil: Selalu Tepat & 0 Poin
       window.soundEngine.playPulang();
+      window.soundEngine.speakStudent(studentInfo.name, 'pulang');
 
       const newRecord = {
         id: `scan_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
@@ -619,6 +621,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const alreadyMasuk = records.find(r => r.nisn === cleanNisn && (r.mode === 'masuk' || (!r.mode && r.type !== 'Pulang')));
       if (alreadyMasuk) {
         window.soundEngine.playDuplicate();
+        window.soundEngine.speakStudent(alreadyMasuk.name || studentInfo.name, 'duplicate');
         showResultBanner({
           nisn: cleanNisn,
           name: alreadyMasuk.name,
@@ -646,8 +649,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Play Audio
     if (isLate) {
       window.soundEngine.playLate();
+      window.soundEngine.speakStudent(studentInfo.name, 'late');
     } else {
       window.soundEngine.playSuccess();
+      window.soundEngine.speakStudent(studentInfo.name, 'success');
     }
 
     const newRecord = {
@@ -899,8 +904,10 @@ document.addEventListener('DOMContentLoaded', () => {
       totalPoints = 0;
       keterangan = 'Presensi Pulang (Tanpa Kartu)';
       window.soundEngine.playPulang();
+      window.soundEngine.speakStudent(name, 'pulang');
     } else {
       window.soundEngine.playLate();
+      window.soundEngine.speakStudent(name, 'tanpa_kartu');
     }
 
     const newRecord = {
@@ -1132,6 +1139,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (inJamPulangSelesai) inJamPulangSelesai.value = s.jamPulangSelesai || '18:00';
     if (inLockOnce) inLockOnce.checked = (s.lockOncePerDay !== false);
 
+    const inTts = document.getElementById('cfgTtsEnabled');
+    if (inTts) inTts.checked = (s.ttsEnabled !== false);
+    if (window.soundEngine) {
+      window.soundEngine.ttsEnabled = (s.ttsEnabled !== false);
+    }
+
     const inPoinPelanggaran = document.getElementById('cfgPoinPelanggaran');
     const inPoinTanpaKartu = document.getElementById('cfgPoinTanpaKartu');
     const inCooldown = document.getElementById('cfgCooldownScan');
@@ -1270,6 +1283,7 @@ document.addEventListener('DOMContentLoaded', () => {
       kategoriTerlambat: selTerlambat ? selTerlambat.value : 'Terlambat hadir di kelas lebih dari 10 menit.',
       kategoriTanpaKartu: selTanpaKartu ? selTanpaKartu.value : 'Tidak membawa ID Card',
       cooldownMinutes: parseInt(document.getElementById('cfgCooldownScan').value, 10) || 30,
+      ttsEnabled: document.getElementById('cfgTtsEnabled') ? document.getElementById('cfgTtsEnabled').checked : true,
 
       guardPin: cfgGuardPinEl ? cfgGuardPinEl.value.trim() : '1234',
       defaultGuardName: cfgDefaultGuardNameEl ? cfgDefaultGuardNameEl.value.trim() : 'Penjaga Sekolah',
@@ -1308,6 +1322,16 @@ document.addEventListener('DOMContentLoaded', () => {
       showToast('⚠️ Pengaturan tersimpan di browser, tetapi gagal menulis ke spreadsheet: ' + (res.message || 'Cek URL Web App'), 'error');
     }
   });
+
+  const btnTestVoice = document.getElementById('btnTestVoice');
+  if (btnTestVoice) {
+    btnTestVoice.addEventListener('click', () => {
+      if (window.soundEngine) {
+        window.soundEngine.playSuccess();
+        window.soundEngine.speakStudent('Budi Santoso', 'success', 150);
+      }
+    });
+  }
 
   const btnInitSheets = document.getElementById('btnInitSheets');
   if (btnInitSheets) {
