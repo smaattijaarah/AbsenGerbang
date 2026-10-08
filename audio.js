@@ -6,9 +6,96 @@ class SoundEngine {
   constructor() {
     this.audioCtx = null;
     this.enabled = true;
+    this.ttsEnabled = true;
+    this.voices = [];
+    this.initVoices();
     this.initOnFirstInteraction = this.initOnFirstInteraction.bind(this);
     window.addEventListener('click', this.initOnFirstInteraction, { once: true });
     window.addEventListener('keydown', this.initOnFirstInteraction, { once: true });
+  }
+
+  initVoices() {
+    if ('speechSynthesis' in window) {
+      try {
+        this.voices = window.speechSynthesis.getVoices() || [];
+        window.speechSynthesis.onvoiceschanged = () => {
+          this.voices = window.speechSynthesis.getVoices() || [];
+        };
+      } catch (_) {}
+    }
+  }
+
+  getIndonesianVoice() {
+    if ('speechSynthesis' in window) {
+      if (!this.voices || this.voices.length === 0) {
+        this.voices = window.speechSynthesis.getVoices() || [];
+      }
+      return this.voices.find(v => v.lang === 'id-ID' || v.lang === 'id_ID' || v.lang.startsWith('id')) || null;
+    }
+    return null;
+  }
+
+  formatDisplayName(fullName) {
+    if (!fullName || typeof fullName !== 'string') return '';
+    const clean = fullName.trim();
+    if (!clean || clean.toLowerCase() === 'siswa' || clean.toLowerCase() === 'null' || clean.toLowerCase() === 'undefined') return '';
+    const parts = clean.split(/\s+/);
+    if (parts.length <= 2) return clean;
+    return parts.slice(0, 2).join(' ');
+  }
+
+  speakStudent(name, status = 'success', delayMs = 120) {
+    if (!this.enabled || !this.ttsEnabled) return;
+    if (!('speechSynthesis' in window)) return;
+
+    setTimeout(() => {
+      try {
+        window.speechSynthesis.cancel();
+
+        const displayName = this.formatDisplayName(name);
+        let text = '';
+
+        if (status === 'success') {
+          text = displayName ? `Terima kasih, ${displayName}!` : 'Terima kasih, selamat belajar!';
+        } else if (status === 'late') {
+          text = displayName ? `Perhatian, ${displayName}, Anda terlambat.` : 'Perhatian, Anda terlambat.';
+        } else if (status === 'pulang') {
+          text = displayName ? `Terima kasih, ${displayName}, selamat jalan.` : 'Terima kasih, selamat jalan.';
+        } else if (status === 'duplicate') {
+          text = displayName ? `${displayName}, Anda sudah presensi.` : 'Anda sudah presensi.';
+        } else if (status === 'tanpa_kartu') {
+          text = displayName ? `Presensi dicatat, ${displayName}.` : 'Presensi dicatat.';
+        } else {
+          text = displayName ? `Halo, ${displayName}.` : 'Presensi berhasil.';
+        }
+
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'id-ID';
+        utterance.rate = 1.05;
+        utterance.pitch = 1.0;
+        utterance.volume = 1.0;
+
+        const voice = this.getIndonesianVoice();
+        if (voice) utterance.voice = voice;
+
+        window.speechSynthesis.speak(utterance);
+      } catch (err) {
+        console.warn('TTS Error:', err);
+      }
+    }, delayMs);
+  }
+
+  speakCustom(text) {
+    if (!('speechSynthesis' in window)) return;
+    try {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'id-ID';
+      utterance.rate = 1.0;
+      const voice = this.getIndonesianVoice();
+      if (voice) utterance.voice = voice;
+      window.speechSynthesis.speak(utterance);
+    } catch (_) {}
   }
 
   initOnFirstInteraction() {
