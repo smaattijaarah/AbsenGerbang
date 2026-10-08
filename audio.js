@@ -52,15 +52,22 @@ class SoundEngine {
       try {
         window.speechSynthesis.cancel();
 
+        const s = (window.storageService && typeof window.storageService.getSettings === 'function') 
+          ? window.storageService.getSettings() 
+          : {};
+        const tplMasuk = s.ttsTemplateMasuk || 'Terima kasih, {nama}!';
+        const tplLate = s.ttsTemplateTerlambat || 'Perhatian, {nama}, Anda terlambat.';
+        const tplPulang = s.ttsTemplatePulang || 'Terima kasih, {nama}, selamat jalan.';
+
         const displayName = this.formatDisplayName(name);
         let text = '';
 
         if (status === 'success') {
-          text = displayName ? `Terima kasih, ${displayName}!` : 'Terima kasih, selamat belajar!';
+          text = displayName ? tplMasuk.replace('{nama}', displayName) : 'Terima kasih, selamat belajar!';
         } else if (status === 'late') {
-          text = displayName ? `Perhatian, ${displayName}, Anda terlambat.` : 'Perhatian, Anda terlambat.';
+          text = displayName ? tplLate.replace('{nama}', displayName) : 'Perhatian, Anda terlambat.';
         } else if (status === 'pulang') {
-          text = displayName ? `Terima kasih, ${displayName}, selamat jalan.` : 'Terima kasih, selamat jalan.';
+          text = displayName ? tplPulang.replace('{nama}', displayName) : 'Terima kasih, selamat jalan.';
         } else if (status === 'duplicate') {
           text = displayName ? `${displayName}, Anda sudah presensi.` : 'Anda sudah presensi.';
         } else if (status === 'tanpa_kartu') {
