@@ -315,7 +315,30 @@
 
         <!-- Tab 1: Jadwal & Poin -->
         <div id="stRules" class="tab-pane active">
+          <div style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+            <p style="margin: 0; font-size: 0.85rem; color: var(--text-muted);">Sesuaikan kategori poin pelanggaran dengan data sheet <code>konfigurasi_poin</code> E-Absensi:</p>
+            <button id="btnFetchPointCategories" type="button" class="btn-secondary-action" style="padding: 8px 14px; font-weight: 700; color: var(--cyan); border-color: var(--cyan);">
+              🔄 Muat Kategori dari Sheet 'konfigurasi_poin'
+            </button>
+          </div>
+
           <div class="form-grid-2">
+            <div class="form-group" style="grid-column: 1 / -1;">
+              <label for="cfgKategoriTerlambat">📌 Kategori Poin untuk Siswa Terlambat:</label>
+              <select id="cfgKategoriTerlambat" style="width: 100%; padding: 10px; background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--border); border-radius: 6px;">
+                <option value="Terlambat hadir di kelas lebih dari 10 menit.">Terlambat hadir di kelas lebih dari 10 menit.</option>
+              </select>
+              <small>Kategori ini otomatis digunakan saat siswa scan melewati batas jam toleransi.</small>
+            </div>
+
+            <div class="form-group" style="grid-column: 1 / -1;">
+              <label for="cfgKategoriTanpaKartu">📌 Kategori Poin untuk Siswa Tanpa ID Card:</label>
+              <select id="cfgKategoriTanpaKartu" style="width: 100%; padding: 10px; background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--border); border-radius: 6px;">
+                <option value="Tidak membawa ID Card">Tidak membawa ID Card</option>
+              </select>
+              <small>Kategori ini otomatis digunakan saat pencatatan manual siswa tidak membawa kartu.</small>
+            </div>
+
             <div class="form-group">
               <label for="cfgJamMasuk">Jam Masuk Sekolah (WIB)</label>
               <input type="time" id="cfgJamMasuk" value="07:00">
@@ -323,17 +346,17 @@
             <div class="form-group">
               <label for="cfgJamToleransi">Batas Akhir Toleransi (WIB)</label>
               <input type="time" id="cfgJamToleransi" value="07:15">
-              <small>Lewat jam ini dihitung Kesiangan</small>
+              <small>Lewat jam ini dihitung Terlambat</small>
             </div>
             <div class="form-group">
-              <label for="cfgPoinPelanggaran">Poin Pelanggaran Kesiangan</label>
+              <label for="cfgPoinPelanggaran">Poin Pelanggaran Terlambat</label>
               <input type="number" id="cfgPoinPelanggaran" value="5" min="0">
             </div>
             <div class="form-group">
-              <label for="cfgPoinTanpaKartu">Poin Tidak Membawa Kartu ID</label>
+              <label for="cfgPoinTanpaKartu">Poin Tidak Membawa ID Card</label>
               <input type="number" id="cfgPoinTanpaKartu" value="5" min="0">
             </div>
-            <div class="form-group">
+            <div class="form-group" style="grid-column: 1 / -1;">
               <label for="cfgCooldownScan">Cegah Double Scan (Menit)</label>
               <input type="number" id="cfgCooldownScan" value="30" min="1">
             </div>
