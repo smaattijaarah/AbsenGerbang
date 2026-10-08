@@ -41,6 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const scanResultCard = document.getElementById('scanResultCard');
   const resultIcon = document.getElementById('resultIcon');
   const resultStatusTag = document.getElementById('resultStatusTag');
+  const resultClassTag = document.getElementById('resultClassTag');
   const resultCardStatusTag = document.getElementById('resultCardStatusTag');
   const resultTimeText = document.getElementById('resultTimeText');
   const resultStudentName = document.getElementById('resultStudentName');
@@ -268,7 +269,7 @@ document.addEventListener('DOMContentLoaded', () => {
     records.forEach(r => {
       if (r.withoutCard) withoutCard++;
       if (r.status === 'Tepat Waktu') onTime++;
-      else if (r.status === 'Kesiangan') late++;
+      else if (r.status === 'Terlambat' || r.status === 'Kesiangan') late++;
     });
 
     countTotalEl.textContent = total;
@@ -298,7 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     attendanceList.innerHTML = filtered.map(r => {
-      const isLate = r.status === 'Kesiangan';
+      const isLate = (r.status === 'Terlambat' || r.status === 'Kesiangan');
       const initial = (r.name || 'S').charAt(0).toUpperCase();
 
       let badges = '';
@@ -306,7 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
         badges += `<span class="tag-label without-card">⚠️ Tanpa Kartu</span>`;
       }
       if (isLate) {
-        badges += `<span class="tag-label late">⏰ Kesiangan (+${r.points}p)</span>`;
+        badges += `<span class="tag-label late">⏰ Terlambat (+${r.points}p)</span>`;
       } else {
         badges += `<span class="tag-label ontime">✅ Tepat Waktu</span>`;
       }
@@ -316,9 +317,12 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="student-identity">
             <div class="student-initial">${initial}</div>
             <div>
-              <div class="student-name-text">${r.name || 'Siswa'}</div>
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <div class="student-name-text" style="font-weight: 700; color: #f8fafc;">${r.name || 'Siswa'}</div>
+                <span class="class-badge" style="background: rgba(14, 165, 233, 0.16); color: #38bdf8; border: 1px solid rgba(14, 165, 233, 0.35); padding: 1px 7px; border-radius: 5px; font-size: 0.76rem; font-weight: 700;">Kelas: ${r.class || '-'}</span>
+              </div>
               <div class="student-sub-text">
-                <span>NISN: ${r.nisn}</span> • ${r.class || '-'}
+                <span>NISN: ${r.nisn}</span>
               </div>
             </div>
           </div>
@@ -377,7 +381,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Determine On-Time vs Late
     const toleransiLimit = (settings.jamToleransi || '07:15') + ':00';
     const isLate = currentTimeStr > toleransiLimit;
-    const statusText = isLate ? 'Kesiangan' : 'Tepat Waktu';
+    const statusText = isLate ? 'Terlambat' : 'Tepat Waktu';
     const points = isLate ? (parseInt(settings.poinPelanggaran, 10) || 5) : 0;
 
     const baseJam = settings.jamMasuk || '07:00';
@@ -435,7 +439,7 @@ document.addEventListener('DOMContentLoaded', () => {
       type: isLate ? 'late' : 'ontime',
       withoutCard: false,
       meta: `Pukul ${currentTimeStr} • Kelas: ${studentInfo.class}`,
-      pointsText: isLate ? `⚠️ Pelanggaran Kesiangan: +${points} Poin` : '',
+      pointsText: isLate ? `⚠️ Pelanggaran Terlambat: +${points} Poin` : '',
       durationMs: execTimeMs
     });
 
@@ -460,14 +464,18 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (info.withoutCard) {
       scanResultCard.classList.add('without-card-alert');
       resultIcon.textContent = '⚠️';
-      resultStatusTag.textContent = info.status.toUpperCase();
+      resultStatusTag.textContent = (info.status || 'TERLAMBAT').toUpperCase();
     } else if (info.type === 'late') {
       scanResultCard.classList.add('late-warning');
       resultIcon.textContent = '⏰';
-      resultStatusTag.textContent = 'KESIANGAN';
+      resultStatusTag.textContent = 'TERLAMBAT';
     } else {
       resultIcon.textContent = '✅';
       resultStatusTag.textContent = 'TEPAT WAKTU';
+    }
+
+    if (resultClassTag) {
+      resultClassTag.textContent = `Kelas: ${info.class || '-'}`;
     }
 
     if (info.withoutCard) {
@@ -477,8 +485,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     resultTimeText.textContent = getCurrentTimeString();
-    resultStudentName.textContent = info.name;
-    resultSubInfo.textContent = `NISN: ${info.nisn} • ${info.meta}`;
+    resultStudentName.textContent = info.name || `Siswa (${info.nisn})`;
+    resultSubInfo.innerHTML = `Kelas: <strong style="color: var(--cyan); font-weight: 700;">${info.class || '-'}</strong> • NISN: ${info.nisn}`;
     resultPointsAlert.textContent = info.pointsText || '';
     resultSpeed.textContent = `${info.durationMs}ms`;
 
@@ -499,7 +507,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const totalPoin = poinCard + poinLate;
 
     previewPoinTanpaKartu.textContent = `+${poinCard} Poin`;
-    previewTimeStatus.textContent = isLate ? 'Kesiangan' : 'Tepat Waktu';
+    previewTimeStatus.textContent = isLate ? 'Terlambat' : 'Tepat Waktu';
     previewPoinLate.textContent = isLate ? `+${poinLate} Poin` : '0 Poin';
     previewPoinLate.className = `point-tag ${isLate ? 'warning' : 'ontime'}`;
     previewTotalPoints.textContent = `${totalPoin} Poin Pelanggaran`;
@@ -606,7 +614,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const toleransiLimit = (settings.jamToleransi || '07:15') + ':00';
     const isLate = currentTimeStr > toleransiLimit;
-    const statusText = isLate ? 'Kesiangan' : 'Tepat Waktu';
+    const statusText = isLate ? 'Terlambat' : 'Tepat Waktu';
 
     const poinCard = parseInt(settings.poinTanpaKartu, 10) || 5;
     const poinLate = isLate ? (parseInt(settings.poinPelanggaran, 10) || 5) : 0;
@@ -660,7 +668,7 @@ document.addEventListener('DOMContentLoaded', () => {
       type: 'without_card',
       withoutCard: true,
       meta: `Kelas: ${sClass} • Pukul ${currentTimeStr}`,
-      pointsText: `⚠️ Tidak Bawa Kartu (+${poinCard}p)${isLate ? ` & Kesiangan (+${poinLate}p)` : ''} = Total ${totalPoints} Poin`,
+      pointsText: `⚠️ Tidak Bawa Kartu (+${poinCard}p)${isLate ? ` & Terlambat (+${poinLate}p)` : ''} = Total ${totalPoints} Poin`,
       durationMs: execTimeMs
     });
 
@@ -891,6 +899,28 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     reader.readAsText(file);
   });
+
+  const btnFetchStudentsSpreadsheet = document.getElementById('btnFetchStudentsSpreadsheet');
+  if (btnFetchStudentsSpreadsheet) {
+    btnFetchStudentsSpreadsheet.addEventListener('click', async () => {
+      btnFetchStudentsSpreadsheet.disabled = true;
+      btnFetchStudentsSpreadsheet.textContent = '⏳ Mengambil data siswa dari Spreadsheet...';
+      try {
+        const res = await window.syncService.fetchStudentsFromSpreadsheet();
+        if (res.success) {
+          showToast(`Berhasil menarik ${res.count} data siswa dari tab '${res.sheetName}'!`, 'success');
+          applySettingsUI();
+        } else {
+          showToast(res.message || 'Gagal menarik data siswa dari spreadsheet.', 'error');
+        }
+      } catch (err) {
+        showToast(`Error: ${err.message}`, 'error');
+      } finally {
+        btnFetchStudentsSpreadsheet.disabled = false;
+        btnFetchStudentsSpreadsheet.textContent = '📥 Tarik Data Siswa dari Spreadsheet (Otomatis)';
+      }
+    });
+  }
 
   // Export CSV
   btnExportCsv.addEventListener('click', () => {
