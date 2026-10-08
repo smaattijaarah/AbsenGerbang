@@ -428,18 +428,22 @@ class SyncService {
   }
 
   /**
-   * Coba otentikasi online langsung ke spreadsheet
+   * Coba otentikasi online langsung ke spreadsheet (dengan validasi hari & batas 2 perangkat)
    */
-  async authenticateOnline(username, pin) {
+  async authenticateOnline(username, pin, deviceId) {
     const settings = window.storageService.getSettings();
     if (!settings.gasUrl) return null;
 
     try {
+      const daysIndo = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+      const todayIndo = daysIndo[new Date().getDay()];
       const payload = {
         action: 'auth_user',
         spreadsheetId: settings.spreadsheetId || '',
         username: username,
-        pin: pin
+        pin: pin,
+        deviceId: deviceId || window.storageService.getDeviceId(),
+        day: todayIndo
       };
       const blob = new Blob([JSON.stringify(payload)], { type: 'text/plain' });
       const res = await fetch(settings.gasUrl, {
@@ -450,10 +454,42 @@ class SyncService {
       const data = await res.json();
       if (data.status === 'success' && data.user) {
         window.storageService.saveUserLocal(data.user);
-        return data.user;
+        return { success: true, user: data.user };
       }
+      return { success: false, reason: data.reason || 'error', message: data.message };
     } catch (_) {}
     return null;
+  }
+
+  /**
+   * Reset perangkat terdaftar untuk sebuah akun (agar bisa login di HP/laptop baru)
+   */
+  async resetUserDevicesInSpreadsheet(username) {
+    window.storageService.resetUserDevicesLocal(username);
+    const settings = window.storageService.getSettings();
+    if (!settings.gasUrl) {
+      return { success: true, message: 'Daftar perangkat berhasil di-reset di memori lokal.' };
+    }
+    try {
+      const payload = {
+        action: 'reset_user_devices',
+        spreadsheetId: settings.spreadsheetId || '',
+        username: username
+      };
+      const blob = new Blob([JSON.stringify(payload)], { type: 'text/plain' });
+      const res = await fetch(settings.gasUrl, {
+        method: 'POST',
+        body: blob,
+        redirect: 'follow'
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        return { success: true, message: data.message || 'Perangkat akun berhasil di-reset.' };
+      }
+      return { success: false, message: data.message || 'Gagal reset di spreadsheet.' };
+    } catch (e) {
+      return { success: true, message: 'Perangkat berhasil di-reset (offline).' };
+    }
   }
 
   /**
