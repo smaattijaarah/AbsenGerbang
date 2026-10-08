@@ -101,6 +101,31 @@
       <!-- KOLOM KIRI: SCANNER & INPUT MANUAL TANPA KARTU -->
       <section class="scanner-section">
         
+        <!-- PILIHAN MODE PRESENSI: MASUK VS PULANG -->
+        <div class="presence-mode-selector">
+          <button type="button" id="btnModeMasuk" class="presence-mode-btn active mode-masuk" title="Klik untuk mengaktifkan Presensi Masuk">
+            <span class="mode-icon">🌅</span>
+            <div class="mode-text">
+              <div class="mode-title-row">
+                <strong>Presensi Masuk</strong>
+                <span class="mode-status-pill on" id="pillModeMasuk">Aktif</span>
+              </div>
+              <small id="subModeMasuk">Buka: 06:00 • Batas: 06:40 • Tutup: 08:00</small>
+            </div>
+          </button>
+
+          <button type="button" id="btnModePulang" class="presence-mode-btn mode-pulang" title="Klik untuk mengaktifkan Presensi Pulang">
+            <span class="mode-icon">🌇</span>
+            <div class="mode-text">
+              <div class="mode-title-row">
+                <strong>Presensi Pulang</strong>
+                <span class="mode-status-pill off" id="pillModePulang">Bebas Poin</span>
+              </div>
+              <small id="subModePulang">Mulai: 15:00 WIB (0 Poin)</small>
+            </div>
+          </button>
+        </div>
+
         <!-- Action Utama Petugas: Scanner + Tombol Cepat Tanpa Kartu -->
         <div class="scanner-main-box">
           
@@ -149,14 +174,14 @@
           </div>
 
           <!-- Info Aturan Waktu Ringkas -->
-          <div class="rules-footer">
-            <span>Batas Masuk: <strong id="displayBatasJam">07:00</strong> WIB</span>
+          <div class="rules-footer" id="rulesFooterText">
+            <span id="rfItem1">Buka Masuk: <strong id="displayBatasJamMulai">06:00</strong></span>
             <span>•</span>
-            <span>Toleransi: <strong id="displayToleransi">07:15</strong> WIB</span>
+            <span id="rfItem2">Toleransi: <strong id="displayToleransi">06:40</strong></span>
             <span>•</span>
-            <span>Poin Terlambat: <strong id="displayPoin">5</strong></span>
+            <span id="rfItem3">Tutup: <strong id="displayBatasJamSelesai">08:00</strong></span>
             <span>•</span>
-            <span>Poin Tanpa Kartu: <strong id="displayPoinTanpaKartu">5</strong></span>
+            <span id="rfItem4">Terlambat: <strong id="displayPoin">1</strong> Poin</span>
           </div>
         </div>
 
@@ -187,13 +212,16 @@
             <span class="count-bubble" id="countTotal">0</span>
           </div>
 
-          <!-- Ringkasan Singkat: Hadir, Terlambat, Tanpa Kartu -->
+          <!-- Ringkasan Singkat: Hadir, Terlambat, Pulang, Tanpa Kartu -->
           <div class="mini-summary">
             <span class="summary-badge ontime" title="Hadir Tepat Waktu">
               ✅ <span id="countOnTime">0</span>
             </span>
             <span class="summary-badge late" title="Terlambat">
               ⏰ <span id="countLate">0</span>
+            </span>
+            <span class="summary-badge pulang" title="Siswa Pulang" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3);">
+              🏠 <span id="countPulang">0</span>
             </span>
             <span class="summary-badge without-card" title="Tidak Bawa Kartu">
               ⚠️ <span id="countWithoutCard">0</span>
@@ -339,26 +367,71 @@
               <small>Kategori ini otomatis digunakan saat pencatatan manual siswa tidak membawa kartu.</small>
             </div>
 
+            <!-- Bagian Presensi Masuk -->
+            <div style="grid-column: 1 / -1; margin-top: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 1.1rem;">🌅</span>
+              <strong style="color: #38bdf8;">Jadwal Presensi Masuk Sekolah</strong>
+            </div>
+
             <div class="form-group">
-              <label for="cfgJamMasuk">Jam Masuk Sekolah (WIB)</label>
-              <input type="time" id="cfgJamMasuk" value="07:00">
+              <label for="cfgJamMasukMulai">Jam Buka Presensi Masuk (WIB)</label>
+              <input type="time" id="cfgJamMasukMulai" value="06:00">
+              <small>Sebelum jam ini, scan masuk belum dibuka</small>
             </div>
             <div class="form-group">
-              <label for="cfgJamToleransi">Batas Akhir Toleransi (WIB)</label>
-              <input type="time" id="cfgJamToleransi" value="07:15">
+              <label for="cfgJamToleransi">Batas Tepat Waktu (WIB)</label>
+              <input type="time" id="cfgJamToleransi" value="06:40">
               <small>Lewat jam ini dihitung Terlambat</small>
             </div>
             <div class="form-group">
-              <label for="cfgPoinPelanggaran">Poin Pelanggaran Terlambat</label>
-              <input type="number" id="cfgPoinPelanggaran" value="5" min="0">
+              <label for="cfgJamMasukSelesai">Jam Tutup Presensi Masuk (WIB)</label>
+              <input type="time" id="cfgJamMasukSelesai" value="08:00">
+              <small>Setelah jam ini, presensi masuk ditutup</small>
             </div>
             <div class="form-group">
-              <label for="cfgPoinTanpaKartu">Poin Tidak Membawa ID Card</label>
-              <input type="number" id="cfgPoinTanpaKartu" value="5" min="0">
+              <label for="cfgPoinPelanggaran">Poin Siswa Terlambat</label>
+              <input type="number" id="cfgPoinPelanggaran" value="1" min="0">
+              <small>Dikenakan jika scan 06:41 s.d. 08:00</small>
             </div>
-            <div class="form-group" style="grid-column: 1 / -1;">
+
+            <!-- Bagian Presensi Pulang -->
+            <div style="grid-column: 1 / -1; margin-top: 15px; padding-bottom: 6px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 1.1rem;">🌇</span>
+              <strong style="color: #818cf8;">Jadwal Presensi Pulang Sekolah (Bebas Poin)</strong>
+            </div>
+
+            <div class="form-group">
+              <label for="cfgJamPulangMulai">Jam Buka Presensi Pulang (WIB)</label>
+              <input type="time" id="cfgJamPulangMulai" value="15:00">
+              <small>Presensi pulang dibuka mulai jam ini (0 Poin)</small>
+            </div>
+            <div class="form-group">
+              <label for="cfgJamPulangSelesai">Jam Tutup Presensi Pulang (WIB)</label>
+              <input type="time" id="cfgJamPulangSelesai" value="18:00">
+              <small>Batas akhir scan pulang sekolah</small>
+            </div>
+
+            <!-- Aturan Tambahan & Batasan Scan -->
+            <div style="grid-column: 1 / -1; margin-top: 15px; padding-bottom: 6px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 1.1rem;">🔒</span>
+              <strong style="color: #34d399;">Aturan Pembatasan Scan & Tanpa Kartu</strong>
+            </div>
+
+            <div class="form-group">
+              <label for="cfgPoinTanpaKartu">Poin Tidak Membawa ID Card</label>
+              <input type="number" id="cfgPoinTanpaKartu" value="2" min="0">
+            </div>
+            <div class="form-group">
               <label for="cfgCooldownScan">Cegah Double Scan (Menit)</label>
-              <input type="number" id="cfgCooldownScan" value="30" min="1">
+              <input type="number" id="cfgCooldownScan" value="1" min="1">
+            </div>
+
+            <div class="form-group" style="grid-column: 1 / -1; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 8px; padding: 12px;">
+              <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin: 0; font-weight: 600; color: #6ee7b7;">
+                <input type="checkbox" id="cfgLockOncePerDay" checked style="width: 18px; height: 18px; cursor: pointer;">
+                <span>Kunci 1 Hari 1x Scan (Maksimal 1x Masuk & 1x Pulang per hari)</span>
+              </label>
+              <small style="display: block; margin-top: 4px; color: var(--text-muted);">Mencegah siswa absen masuk/pulang lebih dari satu kali dalam satu hari.</small>
             </div>
           </div>
         </div>
@@ -509,11 +582,11 @@
   <div id="toastContainer" class="toast-container"></div>
 
   <!-- Scripts -->
-  <script src="./audio.js?v=2.4"></script>
-  <script src="./storage.js?v=2.4"></script>
-  <script src="./firebase-service.js?v=2.4"></script>
-  <script src="./sync-service.js?v=2.4"></script>
-  <script src="./scanner.js?v=2.4"></script>
-  <script src="./app.js?v=2.4"></script>
+  <script src="./audio.js?v=2.5"></script>
+  <script src="./storage.js?v=2.5"></script>
+  <script src="./firebase-service.js?v=2.5"></script>
+  <script src="./sync-service.js?v=2.5"></script>
+  <script src="./scanner.js?v=2.5"></script>
+  <script src="./app.js?v=2.5"></script>
 </body>
 </html>
