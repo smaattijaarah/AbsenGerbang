@@ -1022,6 +1022,15 @@ document.addEventListener('DOMContentLoaded', () => {
     window.firebaseService.init();
     window.syncService.startAutoSync();
 
+    // Simpan permanen ke sheet 'konfigurasi' di Spreadsheet
+    if (newSettings.gasUrl) {
+      window.syncService.saveSettingsToSpreadsheet(newSettings).then(res => {
+        if (res && res.success && !res.offline) {
+          showToast('✓ Pengaturan tersimpan permanen di sheet \'konfigurasi\'!', 'success');
+        }
+      });
+    }
+
     settingsModal.classList.add('hidden');
     showToast('Pengaturan berhasil disimpan!', 'success');
   });
@@ -1088,16 +1097,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const sRes = await window.syncService.fetchStudentsFromSpreadsheet();
         const pRes = await window.syncService.fetchPointCategoriesFromSpreadsheet();
+        const cfgRes = await window.syncService.fetchSettingsFromSpreadsheet();
 
         let msg = '';
         if (sRes.success) msg += `✓ ${sRes.count} Siswa dimuat. `;
-        if (pRes.success) msg += `✓ ${pRes.count} Kategori Poin dimuat.`;
+        if (pRes.success) msg += `✓ ${pRes.count} Kategori Poin dimuat. `;
+        if (cfgRes.success) msg += `✓ Pengaturan jadwal & poin tersinkron.`;
 
-        if (sRes.success || pRes.success) {
+        if (sRes.success || pRes.success || cfgRes.success) {
           showToast(`Sukses sinkronisasi! ${msg}`, 'success');
           applySettingsUI();
         } else {
-          showToast(sRes.message || pRes.message || 'Gagal menarik data dari spreadsheet.', 'error');
+          showToast(sRes.message || pRes.message || cfgRes.message || 'Gagal menarik data dari spreadsheet.', 'error');
         }
       } catch (err) {
         showToast(`Error: ${err.message}`, 'error');
@@ -1154,6 +1165,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (pRes && pRes.success) {
           showToast(`Berhasil memuat ${pRes.count} kategori poin dari sheet '${pRes.sheetName}'!`, 'info');
           populatePointCategoryDropdowns();
+        }
+      });
+      window.syncService.fetchSettingsFromSpreadsheet().then(cRes => {
+        if (cRes && cRes.success) {
+          showToast('Pengaturan jadwal & poin otomatis dimuat dari spreadsheet!', 'info');
+          applySettingsUI();
         }
       });
     }
@@ -1338,9 +1355,16 @@ document.addEventListener('DOMContentLoaded', () => {
   applySettingsUI();
   renderAttendanceUI();
 
-  // Auto-sync master data siswa & kategori poin dari Spreadsheet jika belum ada data di lokal
+  // Auto-sync pengaturan jadwal/poin, data siswa & kategori dari Spreadsheet jika ada koneksi
   setTimeout(async () => {
     try {
+      const s = window.storageService.getSettings();
+      if (s.gasUrl) {
+        const cRes = await window.syncService.fetchSettingsFromSpreadsheet();
+        if (cRes && cRes.success) {
+          applySettingsUI();
+        }
+      }
       const currentMaster = window.storageService.getMasterStudents();
       if (Object.keys(currentMaster).length === 0) {
         const sRes = await window.syncService.fetchStudentsFromSpreadsheet();
