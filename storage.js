@@ -34,6 +34,9 @@ class StorageService {
       cooldownMinutes: 1,
       soundEnabled: true,
       ttsEnabled: true,
+      ttsTemplateMasuk: 'Terima kasih, {nama}!',
+      ttsTemplateTerlambat: 'Perhatian, {nama}, Anda terlambat.',
+      ttsTemplatePulang: 'Terima kasih, {nama}, selamat jalan.',
       
       // Firebase
       fbApiKey: '',
