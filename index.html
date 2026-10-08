@@ -434,9 +434,9 @@
             <small>Salin ID dari URL Google Spreadsheet Anda (antara teks <code>/d/</code> dan <code>/edit</code>) atau tempel link URL lengkapnya.</small>
           </div>
           <div class="form-group">
-            <label for="cfgSheetName">Nama Tab Sheet Tujuan</label>
-            <input type="text" id="cfgSheetName" value="Presensi_Masuk" placeholder="Contoh: Presensi_Masuk atau Rekap_Harian">
-            <small>Data kehadiran akan dicatat ke tab sheet ini (dibuatkan otomatis lengkap dengan header jika tab belum ada).</small>
+            <label for="cfgSheetName">Nama Tab Sheet Tujuan (E-Absensi)</label>
+            <input type="text" id="cfgSheetName" value="catatan_poin" placeholder="catatan_poin">
+            <small>Data pelanggaran dicatat ke <code>catatan_poin</code> (dan otomatis terhubung ke <code>absensi</code>).</small>
           </div>
           <div class="form-group">
             <label for="cfgGasUrl">URL Web App Google Apps Script Terpusat</label>
@@ -500,11 +500,11 @@
   <div id="toastContainer" class="toast-container"></div>
 
   <!-- Scripts -->
-  <script src="./audio.js?v=2.2"></script>
-  <script src="./storage.js?v=2.2"></script>
-  <script src="./firebase-service.js?v=2.2"></script>
-  <script src="./sync-service.js?v=2.2"></script>
-  <script src="./scanner.js?v=2.2"></script>
-  <script src="./app.js?v=2.2"></script>
+  <script src="./audio.js?v=2.3"></script>
+  <script src="./storage.js?v=2.3"></script>
+  <script src="./firebase-service.js?v=2.3"></script>
+  <script src="./sync-service.js?v=2.3"></script>
+  <script src="./scanner.js?v=2.3"></script>
+  <script src="./app.js?v=2.3"></script>
 </body>
 </html>
