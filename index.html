@@ -18,7 +18,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
   
-  <link rel="stylesheet" href="./style.css?v=2.2">
+  <link rel="stylesheet" href="./style.css?v=3.0">
 </head>
 <body>
 
@@ -101,32 +101,34 @@
       <!-- KOLOM KIRI: SCANNER & INPUT MANUAL TANPA KARTU -->
       <section class="scanner-section">
         
-        <!-- PILIHAN MODE PRESENSI: MASUK VS PULANG -->
-        <div class="presence-mode-selector">
-          <button type="button" id="btnModeMasuk" class="presence-mode-btn active mode-masuk" title="Klik untuk mengaktifkan Presensi Masuk">
-            <span class="mode-icon">🌅</span>
-            <div class="mode-text">
-              <div class="mode-title-row">
-                <strong>Presensi Masuk</strong>
-                <span class="mode-status-pill on" id="pillModeMasuk">Aktif</span>
-              </div>
-              <small id="subModeMasuk">Buka: 06:00 • Batas: 06:40 • Tutup: 08:00</small>
+        <!-- PUSAT KONTROL UTAMA: PILIHAN MASUK / KELUAR & CATAT SISWA TANPA KARTU (SIMETRIS DI TENGAH) -->
+        <div class="scanner-top-center-bar">
+          
+          <!-- SEGMENTED TOGGLE: CUKUP TULISAN MASUK & KELUAR (SIMETRIS DI TENGAH) -->
+          <div class="mode-toggle-wrapper">
+            <div class="mode-segmented-pill">
+              <button type="button" id="btnModeMasuk" class="mode-pill-btn active mode-masuk" title="Klik untuk Presensi Masuk">
+                <span class="pill-icon">🌅</span>
+                <span class="pill-label">Masuk</span>
+              </button>
+              <button type="button" id="btnModePulang" class="mode-pill-btn mode-keluar" title="Klik untuk Presensi Keluar">
+                <span class="pill-icon">🌇</span>
+                <span class="pill-label">Keluar</span>
+              </button>
             </div>
-          </button>
+          </div>
 
-          <button type="button" id="btnModePulang" class="presence-mode-btn mode-pulang" title="Klik untuk mengaktifkan Presensi Pulang">
-            <span class="mode-icon">🌇</span>
-            <div class="mode-text">
-              <div class="mode-title-row">
-                <strong>Presensi Pulang</strong>
-                <span class="mode-status-pill off" id="pillModePulang">Bebas Poin</span>
-              </div>
-              <small id="subModePulang">Mulai: 15:00 WIB (0 Poin)</small>
-            </div>
-          </button>
+          <!-- TOMBOL CEPAT: SISWA TANPA KARTU (SIMETRIS DI TENGAH) -->
+          <div class="without-card-wrapper">
+            <button type="button" id="btnOpenManualWithoutCard" class="btn-without-card-centered" title="Catat manual siswa yang lupa/tidak membawa kartu ID">
+              <span class="btn-icon-pulse">⚠️</span>
+              <span class="btn-title">Catat Siswa Tanpa Kartu</span>
+            </button>
+          </div>
+
         </div>
 
-        <!-- Action Utama Petugas: Scanner + Tombol Cepat Tanpa Kartu -->
+        <!-- Action Utama Petugas: Scanner + Tab Scanner -->
         <div class="scanner-main-box">
           
           <div class="scanner-header-row">
@@ -135,11 +137,10 @@
               <button id="tabCamera" class="btn-tab">📷 Kamera HP/Webcam</button>
             </div>
 
-            <!-- TOMBOL CEPAT: SISWA TIDAK BAWA KARTU -->
-            <button id="btnOpenManualWithoutCard" class="btn-without-card" title="Catat manual siswa yang lupa/tidak membawa kartu ID">
-              <span class="btn-icon-pulse">⚠️</span>
-              <strong>Catat Siswa Tanpa Kartu</strong>
-            </button>
+            <div class="scanner-status-indicator" id="scannerModeIndicator">
+              <span class="status-dot-pulse"></span>
+              <span id="scannerModeIndicatorText">Mode: Masuk</span>
+            </div>
           </div>
 
           <!-- Viewport Scanner USB -->
@@ -582,11 +583,11 @@
   <div id="toastContainer" class="toast-container"></div>
 
   <!-- Scripts -->
-  <script src="./audio.js?v=2.5"></script>
-  <script src="./storage.js?v=2.5"></script>
-  <script src="./firebase-service.js?v=2.5"></script>
-  <script src="./sync-service.js?v=2.5"></script>
-  <script src="./scanner.js?v=2.5"></script>
-  <script src="./app.js?v=2.5"></script>
+  <script src="./audio.js?v=3.0"></script>
+  <script src="./storage.js?v=3.0"></script>
+  <script src="./firebase-service.js?v=3.0"></script>
+  <script src="./sync-service.js?v=3.0"></script>
+  <script src="./scanner.js?v=3.0"></script>
+  <script src="./app.js?v=3.0"></script>
 </body>
 </html>
