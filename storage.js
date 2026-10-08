@@ -33,6 +33,7 @@ class StorageService {
       kategoriTanpaKartu: 'Tidak Membawa ID Card/Kartu Pelajar',
       cooldownMinutes: 1,
       soundEnabled: true,
+      ttsEnabled: true,
       
       // Firebase
       fbApiKey: '',
