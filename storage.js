@@ -9,7 +9,8 @@ class StorageService {
       ATTENDANCE: 'fast_scanner_attendance_today',
       MASTER_STUDENTS: 'fast_scanner_students_master',
       LAST_ACTIVE_DATE: 'fast_scanner_active_date',
-      AUTH_SESSION: 'fast_scanner_guard_session'
+      AUTH_SESSION: 'fast_scanner_guard_session',
+      USERS: 'fast_scanner_app_users'
     };
 
     this.defaultSettings = {
@@ -59,6 +60,56 @@ class StorageService {
     localStorage.setItem(this.KEYS.LAST_ACTIVE_DATE, today);
   }
 
+  // --- USER & ADMIN MANAGEMENT (CACHED FROM GOOGLE SHEETS) ---
+  getUsers() {
+    try {
+      const raw = localStorage.getItem(this.KEYS.USERS);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (_) {}
+    return [
+      { username: 'admin', name: 'Administrator', pin: '123456', role: 'admin', status: 'Aktif' },
+      { username: 'penjaga', name: 'Penjaga Sekolah', pin: '1234', role: 'petugas', status: 'Aktif' }
+    ];
+  }
+
+  setUsers(usersList) {
+    if (Array.isArray(usersList)) {
+      localStorage.setItem(this.KEYS.USERS, JSON.stringify(usersList));
+    }
+  }
+
+  findUser(username, pin) {
+    const list = this.getUsers();
+    const uClean = String(username || '').trim().toLowerCase();
+    const pinClean = String(pin || '').trim();
+    return list.find(u => 
+      String(u.username || '').toLowerCase() === uClean && 
+      String(u.pin || '').trim() === pinClean && 
+      String(u.status || 'Aktif').toLowerCase() !== 'nonaktif'
+    );
+  }
+
+  saveUserLocal(userObj) {
+    const list = this.getUsers();
+    const targetU = String(userObj.username || '').trim().toLowerCase();
+    const idx = list.findIndex(u => String(u.username || '').toLowerCase() === targetU);
+    if (idx >= 0) {
+      list[idx] = { ...list[idx], ...userObj };
+    } else {
+      list.push(userObj);
+    }
+    this.setUsers(list);
+  }
+
+  deleteUserLocal(username) {
+    const targetU = String(username || '').trim().toLowerCase();
+    const list = this.getUsers().filter(u => String(u.username || '').toLowerCase() !== targetU);
+    this.setUsers(list);
+  }
+
   // --- AUTH SESSION ---
   getGuardSession() {
     try {
@@ -69,11 +120,24 @@ class StorageService {
     }
   }
 
-  saveGuardSession(guardName) {
-    sessionStorage.setItem(this.KEYS.AUTH_SESSION, JSON.stringify({
-      guardName: guardName || 'Penjaga Sekolah',
-      loginTime: Date.now()
-    }));
+  saveGuardSession(userOrName) {
+    let sessionData;
+    if (typeof userOrName === 'object' && userOrName !== null) {
+      sessionData = {
+        username: userOrName.username || 'penjaga',
+        guardName: userOrName.name || userOrName.username || 'Petugas',
+        role: userOrName.role || 'petugas',
+        loginTime: Date.now()
+      };
+    } else {
+      sessionData = {
+        username: 'penjaga',
+        guardName: userOrName || 'Petugas',
+        role: 'petugas',
+        loginTime: Date.now()
+      };
+    }
+    sessionStorage.setItem(this.KEYS.AUTH_SESSION, JSON.stringify(sessionData));
   }
 
   clearGuardSession() {
