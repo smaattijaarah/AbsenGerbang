@@ -34,6 +34,8 @@ class StorageService {
       cooldownMinutes: 1,
       soundEnabled: true,
       ttsEnabled: true,
+      ttsVoiceURI: '',
+      ttsSpeed: 0.95,
       ttsTemplateMasuk: 'Terima kasih, {nama}!',
       ttsTemplateTerlambat: 'Perhatian, {nama}, Anda terlambat.',
       ttsTemplatePulang: 'Terima kasih, {nama}, selamat jalan.',
