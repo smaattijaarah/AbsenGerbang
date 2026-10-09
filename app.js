@@ -109,6 +109,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
       loginScreen.classList.add('hidden');
       mainApp.classList.remove('hidden');
+
+      // Segera tampilkan rekapan data presensi yang ada di lokal
+      renderAttendanceUI(searchHistoryInput ? searchHistoryInput.value : '');
+
+      // Tarik rekapan terbaru dari server secara otomatis di latar belakang
+      if (navigator.onLine) {
+        window.syncService.fetchTodayAttendanceFromSpreadsheet().then(res => {
+          if (res && res.success) {
+            renderAttendanceUI(searchHistoryInput ? searchHistoryInput.value : '');
+          }
+        }).catch(() => {});
+      }
     } else {
       loginScreen.classList.remove('hidden');
       mainApp.classList.add('hidden');
@@ -165,10 +177,13 @@ document.addEventListener('DOMContentLoaded', () => {
         window.syncService.saveUserToSpreadsheet(matchedUser).then(() => {
           window.syncService.fetchUsersFromSpreadsheet().then(() => renderUserTableUI());
         });
-        // Tarik data presensi hari ini agar akun admin/petugas langsung tersinkron dengan akun lain
+        showToast('Memuat rekapan presensi hari ini dari server...', 'info');
         window.syncService.fetchTodayAttendanceFromSpreadsheet().then(res => {
           if (res && res.success) {
             renderAttendanceUI(searchHistoryInput ? searchHistoryInput.value : '');
+            if (res.count > 0) {
+              showToast(`✓ ${res.count} rekapan presensi hari ini berhasil disinkronkan!`, 'success');
+            }
           }
         });
       }
@@ -1832,7 +1847,24 @@ document.addEventListener('DOMContentLoaded', () => {
   applySettingsUI();
   renderAttendanceUI();
 
-  // Auto-sync pengaturan jadwal/poin, data siswa & kategori dari Spreadsheet jika ada koneksi
+  // Tombol Refresh Rekapan Presensi Manual
+  const btnRefreshAttendance = document.getElementById('btnRefreshAttendance');
+  if (btnRefreshAttendance) {
+    btnRefreshAttendance.addEventListener('click', triggerManualSync);
+  }
+
+  // 1. Prioritas Utama: Tarik rekapan presensi hari ini segera (150ms) agar data langsung muncul
+  setTimeout(() => {
+    if (navigator.onLine) {
+      window.syncService.fetchTodayAttendanceFromSpreadsheet().then(todayRes => {
+        if (todayRes && todayRes.success) {
+          renderAttendanceUI(searchHistoryInput ? searchHistoryInput.value : '');
+        }
+      }).catch(() => {});
+    }
+  }, 150);
+
+  // 2. Latar Belakang: Sinkronkan master data siswa, poin & pengaturan
   setTimeout(async () => {
     try {
       const s = window.storageService.getSettings();
@@ -1856,12 +1888,6 @@ document.addEventListener('DOMContentLoaded', () => {
           populatePointCategoryDropdowns();
         }
       }
-
-      // Tarik data presensi hari ini agar data langsung sinkron antar semua akun saat pertama dibuka
-      const todayRes = await window.syncService.fetchTodayAttendanceFromSpreadsheet();
-      if (todayRes && todayRes.success) {
-        renderAttendanceUI();
-      }
     } catch (_) {}
-  }, 1200);
+  }, 1500);
 });
