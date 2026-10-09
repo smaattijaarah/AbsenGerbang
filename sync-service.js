@@ -5,6 +5,7 @@
 class SyncService {
   constructor() {
     this.isSyncing = false;
+    this.isPulling = false;
     this.timerId = null;
     this.listeners = [];
   }
@@ -17,16 +18,19 @@ class SyncService {
     this.listeners.forEach(fn => fn(status));
   }
 
+  /**
+   * Mulai loop sinkronisasi otomatis 2 arah (Push pending + Pull cloud presensi)
+   */
   startAutoSync() {
     this.stopAutoSync();
     const settings = window.storageService.getSettings();
     const intervalSec = Math.max(3, parseInt(settings.syncInterval, 10) || 5);
 
-    // Initial check
-    this.syncPendingToGas();
+    // Initial check: sinkronkan langsung
+    this.syncAll();
 
     this.timerId = setInterval(() => {
-      this.syncPendingToGas();
+      this.syncAll();
     }, intervalSec * 1000);
   }
 
@@ -34,6 +38,29 @@ class SyncService {
     if (this.timerId) {
       clearInterval(this.timerId);
       this.timerId = null;
+    }
+  }
+
+  /**
+   * Sinkronisasi lengkap 2 arah:
+   * 1. Kirim semua antrean presensi lokal ke Google Sheets
+   * 2. Tarik semua presensi hari ini dari Google Sheets (sinkronkan antar semua akun)
+   */
+  async syncAll() {
+    const settings = window.storageService.getSettings();
+    if (!settings.gasUrl || !settings.gasUrl.startsWith('http')) return { status: 'no_url' };
+
+    try {
+      // 1. Dorong antrean lokal jika ada
+      const pending = window.storageService.getPendingGasSync();
+      if (pending.length > 0) {
+        await this.syncPendingToGas();
+      }
+
+      // 2. Tarik presensi hari ini dari server (membuat akun admin & petugas saling sinkron)
+      await this.fetchTodayAttendanceFromSpreadsheet();
+    } catch (err) {
+      console.warn('SyncAll error:', err);
     }
   }
 
@@ -116,6 +143,87 @@ class SyncService {
       this.isSyncing = false;
       const remaining = window.storageService.getPendingGasSync();
       this.notifyUpdate({ pendingCount: remaining.length, isSyncing: false });
+    }
+  }
+
+  /**
+   * Tarik seluruh data presensi hari ini dari Google Sheets (Cloud)
+   * Sinkronisasi 2 arah real-time antar semua akun (Petugas, Admin, dll.)
+   */
+  async fetchTodayAttendanceFromSpreadsheet(targetDate) {
+    if (this.isPulling) return { status: 'already_pulling' };
+    const settings = window.storageService.getSettings();
+    if (!settings.gasUrl || !settings.gasUrl.startsWith('http')) {
+      return { success: false, reason: 'no_url' };
+    }
+
+    const cleanUrl = settings.gasUrl.trim();
+    const todayStr = targetDate || window.storageService.getTodayString();
+    this.isPulling = true;
+
+    try {
+      // 1. Coba via GET terlebih dahulu (cepat & 100% bebas dari blokir CORS preflight browser)
+      try {
+        const getUrl = new URL(cleanUrl);
+        getUrl.searchParams.set('action', 'get_today_attendance');
+        getUrl.searchParams.set('date', todayStr);
+        getUrl.searchParams.set('_t', Date.now());
+
+        const res = await fetch(getUrl.toString(), {
+          method: 'GET',
+          redirect: 'follow',
+          cache: 'no-cache'
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.status === 'success' && Array.isArray(data.records)) {
+            const mergeResult = window.storageService.mergeTodayRecords(data.records);
+            this.notifyUpdate({
+              type: 'attendance_synced',
+              addedCount: mergeResult.addedCount,
+              totalCount: mergeResult.totalCount,
+              date: todayStr
+            });
+            return { success: true, count: data.records.length, added: mergeResult.addedCount };
+          }
+        }
+      } catch (getErr) {
+        // Fallback ke POST jika GET terkendala
+      }
+
+      // 2. Fallback via POST murni dengan Blob text/plain (bebas OPTIONS CORS)
+      const payload = {
+        action: 'get_today_attendance',
+        date: todayStr
+      };
+      const blob = new Blob([JSON.stringify(payload)], { type: 'text/plain' });
+      const postRes = await fetch(cleanUrl, {
+        method: 'POST',
+        body: blob,
+        redirect: 'follow'
+      });
+
+      if (postRes.ok) {
+        const data = await postRes.json();
+        if (data && data.status === 'success' && Array.isArray(data.records)) {
+          const mergeResult = window.storageService.mergeTodayRecords(data.records);
+          this.notifyUpdate({
+            type: 'attendance_synced',
+            addedCount: mergeResult.addedCount,
+            totalCount: mergeResult.totalCount,
+            date: todayStr
+          });
+          return { success: true, count: data.records.length, added: mergeResult.addedCount };
+        }
+      }
+
+      return { success: false, message: 'Respon server tidak valid atau format salah' };
+    } catch (err) {
+      console.warn('Gagal menarik data presensi dari Google Sheets:', err.message);
+      return { success: false, error: err.message };
+    } finally {
+      this.isPulling = false;
     }
   }
 
