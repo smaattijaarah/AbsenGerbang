@@ -478,7 +478,7 @@
               </div>
               <button type="button" id="btnTestVoice" class="btn-secondary-action"
                 style="padding: 4px 10px; font-size: 0.78rem; border-color: #38bdf8; color: #38bdf8;">
-                🔊 Tes Suara
+                🔊 Tes Suara "Muhamad"
               </button>
             </div>
 
@@ -492,6 +492,40 @@
               <small style="display: block; margin-top: 4px; margin-bottom: 12px; color: var(--text-muted);">Saat siswa
                 scan, aplikasi otomatis memanggil nama siswa. Gunakan kode <code>{nama}</code> untuk posisi nama
                 siswa.</small>
+
+              <!-- Pemilihan Suara (Voice Selector) & Kecepatan -->
+              <div style="background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 6px; padding: 10px; margin-bottom: 12px;">
+                <div style="margin-bottom: 8px;">
+                  <label for="cfgTtsVoice" style="font-size: 0.8rem; color: #38bdf8; display: block; font-weight: 600; margin-bottom: 4px;">
+                    🎙️ Pilihan Karakter Suara:
+                  </label>
+                  <select id="cfgTtsVoice" style="width: 100%; padding: 8px 10px; background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem;">
+                    <option value="">Otomatis (Pilih Suara Bahasa Indonesia Terbaik)</option>
+                  </select>
+                  <div id="ttsVoiceStatus" style="margin-top: 5px; font-size: 0.75rem; color: #94a3b8;">
+                    Mendeteksi suara sistem...
+                  </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 8px;">
+                  <div>
+                    <label for="cfgTtsSpeed" style="font-size: 0.8rem; color: #94a3b8; display: block; margin-bottom: 4px;">
+                      ⚡ Kecepatan Panggilan Nama:
+                    </label>
+                    <select id="cfgTtsSpeed" style="width: 100%; padding: 7px 10px; background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--border); border-radius: 6px; font-size: 0.82rem;">
+                      <option value="0.9">0.90x (Pelan & Artikulasi Paling Jelas)</option>
+                      <option value="0.95" selected>0.95x (Sedang & Jernih - Direkomendasikan)</option>
+                      <option value="1.0">1.00x (Kecepatan Normal)</option>
+                      <option value="1.05">1.05x (Agak Cepat)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style="margin-top: 8px; font-size: 0.75rem; line-height: 1.4; color: #7dd3fc; background: rgba(56, 189, 248, 0.08); padding: 8px; border-radius: 4px;">
+                  💡 <strong>Tips Agar Pengucapan 100% Orang Indonesia Banget:</strong><br>
+                  Buka aplikasi ini di <strong>Microsoft Edge</strong>. Edge otomatis memiliki suara <em>"Microsoft Gadis Online (Natural)"</em> yang sangat merdu, fasih, dan pelafalan nama lokal (seperti Muhamad) terdengar sempurna layaknya orang asli Indonesia tanpa perlu instal aplikasi tambahan.
+                </div>
+              </div>
 
               <div style="display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 8px;">
                 <div>
