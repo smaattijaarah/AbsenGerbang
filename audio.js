@@ -20,27 +20,111 @@ class SoundEngine {
         this.voices = window.speechSynthesis.getVoices() || [];
         window.speechSynthesis.onvoiceschanged = () => {
           this.voices = window.speechSynthesis.getVoices() || [];
+          if (typeof window.onVoicesLoaded === 'function') {
+            window.onVoicesLoaded(this.voices);
+          }
         };
       } catch (_) {}
     }
   }
 
-  getIndonesianVoice() {
+  getAvailableVoices() {
     if ('speechSynthesis' in window) {
-      if (!this.voices || this.voices.length === 0) {
-        this.voices = window.speechSynthesis.getVoices() || [];
-      }
-      return this.voices.find(v => v.lang === 'id-ID' || v.lang === 'id_ID' || v.lang.startsWith('id')) || null;
+      const v = window.speechSynthesis.getVoices();
+      if (v && v.length > 0) this.voices = v;
     }
+    return this.voices || [];
+  }
+
+  getIndonesianVoice() {
+    const list = this.getAvailableVoices();
+    if (!list || list.length === 0) return null;
+
+    // 1. Cek preferensi yang disimpan pengguna
+    let preferredURI = '';
+    try {
+      const s = (window.storageService && typeof window.storageService.getSettings === 'function')
+        ? window.storageService.getSettings()
+        : null;
+      if (s && s.ttsVoiceURI) preferredURI = s.ttsVoiceURI;
+    } catch (_) {}
+
+    if (preferredURI) {
+      const userSelected = list.find(v => v.voiceURI === preferredURI || v.name === preferredURI);
+      if (userSelected) return userSelected;
+    }
+
+    // 2. Cari semua suara yang berbahasa Indonesia atau memiliki label Indonesia
+    const idVoices = list.filter(v => {
+      const lang = (v.lang || '').toLowerCase().replace(/_/g, '-');
+      const name = (v.name || '').toLowerCase();
+      return lang.startsWith('id') || name.includes('indonesia') || name.includes('bahasa indonesia');
+    });
+
+    if (idVoices.length > 0) {
+      // Prioritas 1: Suara Alami Microsoft (Edge Natural - Gadis / Ardi - sangat fasih & mirip manusia asli)
+      const natural = idVoices.find(v => {
+        const name = (v.name || '').toLowerCase();
+        return name.includes('natural') || name.includes('gadis') || name.includes('ardi');
+      });
+      if (natural) return natural;
+
+      // Prioritas 2: Suara Google Bahasa Indonesia (di Chrome)
+      const google = idVoices.find(v => (v.name || '').toLowerCase().includes('google'));
+      if (google) return google;
+
+      // Prioritas 3: Suara Indonesia pertama yang tersedia
+      return idVoices[0];
+    }
+
+    // 3. Cadangan: Suara Melayu (ms-MY) jika Windows/Browser tidak memiliki suara id-ID sama sekali.
+    // Fonetik bahasa Melayu sangat mirip dengan Indonesia, melafalkan "Muhammad" dengan benar "Mu-ham-mad", bukan "memet".
+    const msVoices = list.filter(v => {
+      const lang = (v.lang || '').toLowerCase().replace(/_/g, '-');
+      const name = (v.name || '').toLowerCase();
+      return lang.startsWith('ms') || name.includes('melayu') || name.includes('malay');
+    });
+    if (msVoices.length > 0) {
+      return msVoices[0];
+    }
+
+    // 4. Fallback: Suara default browser
     return null;
+  }
+
+  toTitleCase(str) {
+    if (!str) return '';
+    return str.replace(/\b\w+/g, txt => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
+  }
+
+  normalizeIndonesianName(rawName) {
+    if (!rawName || typeof rawName !== 'string') return '';
+    let name = rawName.trim();
+
+    // Jika nama ditulis dengan HURUF BESAR SEMUA (ALL CAPS), ubah ke Title Case
+    // agar engine TTS membacanya sebagai kata utuh, bukan mengeja huruf satu per satu (akronim)
+    if (name === name.toUpperCase()) {
+      name = this.toTitleCase(name);
+    }
+
+    // Perluas singkatan umum nama siswa agar pelafalan TTS terdengar fasih & lengkap
+    name = name.replace(/\b(m|muh|moh|moch|mhd)\.\s*/gi, 'Muhammad ');
+    name = name.replace(/\b(muhamad)\b/gi, 'Muhammad');
+    name = name.replace(/\b(abd)\.\s*/gi, 'Abdul ');
+    name = name.replace(/\b(ahmd|ahm)\.\s*/gi, 'Ahmad ');
+
+    return name.trim();
   }
 
   formatDisplayName(fullName) {
     if (!fullName || typeof fullName !== 'string') return '';
     const clean = fullName.trim();
     if (!clean || clean.toLowerCase() === 'siswa' || clean.toLowerCase() === 'null' || clean.toLowerCase() === 'undefined') return '';
-    const parts = clean.split(/\s+/);
-    if (parts.length <= 2) return clean;
+    
+    // Normalisasi singkatan & bentuk kapital
+    const normalized = this.normalizeIndonesianName(clean);
+    const parts = normalized.split(/\s+/);
+    if (parts.length <= 2) return normalized;
     return parts.slice(0, 2).join(' ');
   }
 
@@ -78,12 +162,18 @@ class SoundEngine {
 
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'id-ID';
-        utterance.rate = 1.05;
+        
+        // Atur kecepatan bicara (0.92 - 0.96 menghasilkan artikulasi kata yang jauh lebih jelas dan tidak terburu-buru)
+        const customSpeed = parseFloat(s.ttsSpeed);
+        utterance.rate = (!isNaN(customSpeed) && customSpeed >= 0.7 && customSpeed <= 1.5) ? customSpeed : 0.95;
         utterance.pitch = 1.0;
         utterance.volume = 1.0;
 
         const voice = this.getIndonesianVoice();
-        if (voice) utterance.voice = voice;
+        if (voice) {
+          utterance.voice = voice;
+          if (voice.lang) utterance.lang = voice.lang;
+        }
 
         window.speechSynthesis.speak(utterance);
       } catch (err) {
@@ -98,9 +188,18 @@ class SoundEngine {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'id-ID';
-      utterance.rate = 1.0;
+      
+      const s = (window.storageService && typeof window.storageService.getSettings === 'function') 
+        ? window.storageService.getSettings() 
+        : {};
+      const customSpeed = parseFloat(s.ttsSpeed);
+      utterance.rate = (!isNaN(customSpeed) && customSpeed >= 0.7 && customSpeed <= 1.5) ? customSpeed : 0.95;
+      
       const voice = this.getIndonesianVoice();
-      if (voice) utterance.voice = voice;
+      if (voice) {
+        utterance.voice = voice;
+        if (voice.lang) utterance.lang = voice.lang;
+      }
       window.speechSynthesis.speak(utterance);
     } catch (_) {}
   }
