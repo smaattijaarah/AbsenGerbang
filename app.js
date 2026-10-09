@@ -165,6 +165,12 @@ document.addEventListener('DOMContentLoaded', () => {
         window.syncService.saveUserToSpreadsheet(matchedUser).then(() => {
           window.syncService.fetchUsersFromSpreadsheet().then(() => renderUserTableUI());
         });
+        // Tarik data presensi hari ini agar akun admin/petugas langsung tersinkron dengan akun lain
+        window.syncService.fetchTodayAttendanceFromSpreadsheet().then(res => {
+          if (res && res.success) {
+            renderAttendanceUI(searchHistoryInput ? searchHistoryInput.value : '');
+          }
+        });
       }
     } else {
       showToast(loginResult.message || 'Nama Pengguna atau PIN salah. Silakan periksa kembali.', 'error');
@@ -512,7 +518,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Cegah scan pulang 2x sehari (1 Hari 1x Pulang)
       if (settings.lockOncePerDay !== false) {
-        const alreadyPulang = records.find(r => r.nisn === cleanNisn && (r.mode === 'pulang' || r.type === 'Pulang'));
+        const cleanNoZero = cleanNisn.replace(/^0+/, '');
+        const alreadyPulang = records.find(r => {
+          const rNisn = String(r.nisn || '').replace(/^'+/, '').trim();
+          const isSame = (rNisn === cleanNisn || (cleanNoZero && rNisn.replace(/^0+/, '') === cleanNoZero));
+          return isSame && (r.mode === 'pulang' || r.type === 'Pulang' || r.status === 'Pulang');
+        });
         if (alreadyPulang) {
           window.soundEngine.playDuplicate();
           window.soundEngine.speakStudent(alreadyPulang.name || studentInfo.name, 'duplicate');
@@ -623,7 +634,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Cegah scan masuk 2x sehari (1 Hari 1x Masuk)
     if (settings.lockOncePerDay !== false) {
-      const alreadyMasuk = records.find(r => r.nisn === cleanNisn && (r.mode === 'masuk' || (!r.mode && r.type !== 'Pulang')));
+      const cleanNoZero = cleanNisn.replace(/^0+/, '');
+      const alreadyMasuk = records.find(r => {
+        const rNisn = String(r.nisn || '').replace(/^'+/, '').trim();
+        const isSame = (rNisn === cleanNisn || (cleanNoZero && rNisn.replace(/^0+/, '') === cleanNoZero));
+        return isSame && (r.mode === 'masuk' || (!r.mode && r.type !== 'Pulang' && r.status !== 'Pulang'));
+      });
       if (alreadyMasuk) {
         window.soundEngine.playDuplicate();
         window.soundEngine.speakStudent(alreadyMasuk.name || studentInfo.name, 'duplicate');
@@ -895,6 +911,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const mode = window.storageService.getScanMode();
     const isPulang = (mode === 'pulang');
 
+    // Cek duplikasi presensi manual jika mode kunci 1x per hari aktif
+    if (settings.lockOncePerDay !== false && nisn && !nisn.startsWith('MANUAL_')) {
+      const records = window.storageService.getTodayRecords();
+      const cleanNisn = String(nisn).replace(/^'+/, '').trim();
+      const cleanNoZero = cleanNisn.replace(/^0+/, '');
+      const matchNisn = (rNisn) => {
+        const c = String(rNisn || '').replace(/^'+/, '').trim();
+        return c === cleanNisn || (cleanNoZero && c.replace(/^0+/, '') === cleanNoZero);
+      };
+
+      if (isPulang) {
+        const alreadyPulang = records.find(r => matchNisn(r.nisn) && (r.mode === 'pulang' || r.type === 'Pulang' || r.status === 'Pulang'));
+        if (alreadyPulang) {
+          showToast(`Siswa "${alreadyPulang.name || name}" sudah presensi pulang hari ini (${alreadyPulang.time})!`, 'warning');
+          return;
+        }
+      } else {
+        const alreadyMasuk = records.find(r => matchNisn(r.nisn) && (r.mode === 'masuk' || (!r.mode && r.type !== 'Pulang' && r.status !== 'Pulang')));
+        if (alreadyMasuk) {
+          showToast(`Siswa "${alreadyMasuk.name || name}" sudah presensi masuk hari ini (${alreadyMasuk.time})!`, 'warning');
+          return;
+        }
+      }
+    }
+
     const toleransiLimit = (settings.jamToleransi || '06:40') + ':00';
     const isLate = currentTimeStr > toleransiLimit;
 
@@ -923,6 +964,7 @@ document.addEventListener('DOMContentLoaded', () => {
       timestamp: now.getTime(),
       date: todayStr,
       time: currentTimeStr,
+      mode: isPulang ? 'pulang' : 'masuk',
       type: tipe,
       status: statusText,
       keterangan: keterangan,
@@ -997,7 +1039,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const isOnline = navigator.onLine;
     if (!isOnline) {
       const pending = window.storageService.getPendingGasSync();
-      showToast(`Mode Offline: ${pending.length} data tersimpan aman di komputer ini dan tidak akan hilang. Data akan disinkronkan otomatis saat ada koneksi internet.`, 'warning');
+      showToast(`Mode Offline: ${pending.length} data tersimpan aman di komputer ini. Data akan disinkronkan otomatis saat ada koneksi internet.`, 'warning');
       return;
     }
 
@@ -1007,22 +1049,31 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    showToast('Menyinkronkan data presensi 2 arah dengan Google Sheets...', 'info');
+
+    // 1. Dorong antrean lokal jika ada
     const pending = window.storageService.getPendingGasSync();
-    if (pending.length === 0) {
-      showToast('Semua data presensi hari ini sudah tersinkron ke Google Sheets!', 'success');
-      return;
+    let pushCount = 0;
+    if (pending.length > 0) {
+      const pushRes = await window.syncService.syncPendingToGas(true);
+      if (pushRes.status === 'success') {
+        pushCount = pushRes.count || pending.length;
+      }
     }
 
-    showToast(`Memulai sinkronisasi manual ${pending.length} data ke spreadsheet E-Absensi...`, 'info');
-    const result = await window.syncService.syncPendingToGas(true);
+    // 2. Tarik seluruh presensi hari ini dari Spreadsheet (Sinkronisasi Admin & Petugas)
+    const pullRes = await window.syncService.fetchTodayAttendanceFromSpreadsheet();
 
-    if (result.status === 'success') {
-      const sheetName = settings.sheetName || 'Presensi_Masuk';
-      showToast(`Sukses! ${result.count} data presensi telah masuk ke sheet "${sheetName}". Jam scan siswa asli tetap terjaga!`, 'success');
-    } else if (result.status === 'gas_error') {
-      showToast(`Gagal mencatat ke Spreadsheet: ${result.error}. Data tetap aman di antrean lokal.`, 'error');
-    } else if (result.status === 'network_error') {
-      showToast(`Gagal menghubungi Google Apps Script: ${result.error}. Data tetap aman di antrean lokal.`, 'error');
+    // 3. Render ulang UI kehadiran & perbarui statistik
+    renderAttendanceUI(searchHistoryInput ? searchHistoryInput.value : '');
+
+    if (pullRes && pullRes.success) {
+      const addedMsg = pullRes.added > 0 ? ` (+${pullRes.added} presensi baru dari akun lain)` : '';
+      showToast(`Sinkronisasi selesai! Total ${pullRes.count || 0} presensi hari ini cocok.${addedMsg}`, 'success');
+    } else if (pushCount > 0) {
+      showToast(`Sukses mengirim ${pushCount} antrean lokal ke Google Sheets!`, 'success');
+    } else {
+      showToast('Semua data presensi hari ini sudah sinkron dan cocok dengan Google Sheets!', 'success');
     }
   }
 
@@ -1032,7 +1083,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Auto sync when re-gaining internet connection
   window.addEventListener('online', () => {
     showToast('Koneksi internet terhubung kembali! Menyinkronkan antrean data ke Google Sheets...', 'info');
-    window.syncService.syncPendingToGas(true);
+    window.syncService.syncAll();
   });
 
   window.addEventListener('offline', () => {
@@ -1043,19 +1094,26 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   window.syncService.onUpdate((stat) => {
+    if (stat.type === 'attendance_synced') {
+      renderAttendanceUI(searchHistoryInput ? searchHistoryInput.value : '');
+    }
+
     const isOnline = navigator.onLine;
+    const pending = window.storageService.getPendingGasSync();
+    const todayCount = window.storageService.getTodayRecords().length;
+
     if (stat.isSyncing) {
       headerSyncStatus.className = 'status-indicator syncing';
-      headerSyncStatus.innerHTML = `⏳ Syncing ke Sheets... (${stat.pendingCount})`;
+      headerSyncStatus.innerHTML = `⏳ Syncing ke Sheets... (${pending.length})`;
     } else if (!isOnline) {
       headerSyncStatus.className = 'status-indicator offline';
-      headerSyncStatus.innerHTML = `📡 Offline (${stat.pendingCount}) • Klik sync`;
-    } else if (stat.pendingCount > 0) {
+      headerSyncStatus.innerHTML = `📡 Offline (${pending.length}) • Klik sync`;
+    } else if (pending.length > 0) {
       headerSyncStatus.className = 'status-indicator pending';
-      headerSyncStatus.innerHTML = `🔄 ${stat.pendingCount} Antrean • Klik sync`;
+      headerSyncStatus.innerHTML = `🔄 ${pending.length} Antrean • Klik sync`;
     } else {
       headerSyncStatus.className = 'status-indicator synced';
-      headerSyncStatus.innerHTML = `☁️ Sheets: Tersinkron (0)`;
+      headerSyncStatus.innerHTML = `☁️ Sheets: Sinkron (${todayCount})`;
     }
   });
 
@@ -1797,6 +1855,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (pRes && pRes.success) {
           populatePointCategoryDropdowns();
         }
+      }
+
+      // Tarik data presensi hari ini agar data langsung sinkron antar semua akun saat pertama dibuka
+      const todayRes = await window.syncService.fetchTodayAttendanceFromSpreadsheet();
+      if (todayRes && todayRes.success) {
+        renderAttendanceUI();
       }
     } catch (_) {}
   }, 1200);
