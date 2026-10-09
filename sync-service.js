@@ -6,6 +6,7 @@ class SyncService {
   constructor() {
     this.isSyncing = false;
     this.isPulling = false;
+    this.activePullPromise = null;
     this.timerId = null;
     this.listeners = [];
   }
@@ -151,15 +152,28 @@ class SyncService {
    * Sinkronisasi 2 arah real-time antar semua akun (Petugas, Admin, dll.)
    */
   async fetchTodayAttendanceFromSpreadsheet(targetDate) {
-    if (this.isPulling) return { status: 'already_pulling' };
+    if (this.activePullPromise) {
+      return this.activePullPromise;
+    }
+
     const settings = window.storageService.getSettings();
     if (!settings.gasUrl || !settings.gasUrl.startsWith('http')) {
       return { success: false, reason: 'no_url' };
     }
 
+    this.isPulling = true;
+    this.activePullPromise = this._executeFetchTodayAttendance(targetDate, settings);
+    try {
+      return await this.activePullPromise;
+    } finally {
+      this.isPulling = false;
+      this.activePullPromise = null;
+    }
+  }
+
+  async _executeFetchTodayAttendance(targetDate, settings) {
     const cleanUrl = settings.gasUrl.trim();
     const todayStr = targetDate || window.storageService.getTodayString();
-    this.isPulling = true;
 
     try {
       // 1. Coba via GET terlebih dahulu (cepat & 100% bebas dari blokir CORS preflight browser)
@@ -169,11 +183,20 @@ class SyncService {
         getUrl.searchParams.set('date', todayStr);
         getUrl.searchParams.set('_t', Date.now());
 
+        let getSignal = undefined;
+        let getTimeoutId = null;
+        if (typeof AbortController !== 'undefined') {
+          const controller = new AbortController();
+          getTimeoutId = setTimeout(() => controller.abort(), 12000);
+          getSignal = controller.signal;
+        }
+
         const res = await fetch(getUrl.toString(), {
           method: 'GET',
           redirect: 'follow',
-          cache: 'no-cache'
+          signal: getSignal
         });
+        if (getTimeoutId) clearTimeout(getTimeoutId);
 
         if (res.ok) {
           const data = await res.json();
@@ -185,11 +208,11 @@ class SyncService {
               totalCount: mergeResult.totalCount,
               date: todayStr
             });
-            return { success: true, count: data.records.length, added: mergeResult.addedCount };
+            return { success: true, count: data.records.length, added: mergeResult.addedCount, records: data.records };
           }
         }
       } catch (getErr) {
-        // Fallback ke POST jika GET terkendala
+        console.warn('GET today attendance failed, trying POST:', getErr.message);
       }
 
       // 2. Fallback via POST murni dengan Blob text/plain (bebas OPTIONS CORS)
@@ -198,11 +221,22 @@ class SyncService {
         date: todayStr
       };
       const blob = new Blob([JSON.stringify(payload)], { type: 'text/plain' });
+
+      let postSignal = undefined;
+      let postTimeoutId = null;
+      if (typeof AbortController !== 'undefined') {
+        const controller = new AbortController();
+        postTimeoutId = setTimeout(() => controller.abort(), 15000);
+        postSignal = controller.signal;
+      }
+
       const postRes = await fetch(cleanUrl, {
         method: 'POST',
         body: blob,
-        redirect: 'follow'
+        redirect: 'follow',
+        signal: postSignal
       });
+      if (postTimeoutId) clearTimeout(postTimeoutId);
 
       if (postRes.ok) {
         const data = await postRes.json();
@@ -214,7 +248,7 @@ class SyncService {
             totalCount: mergeResult.totalCount,
             date: todayStr
           });
-          return { success: true, count: data.records.length, added: mergeResult.addedCount };
+          return { success: true, count: data.records.length, added: mergeResult.addedCount, records: data.records };
         }
       }
 
@@ -222,8 +256,6 @@ class SyncService {
     } catch (err) {
       console.warn('Gagal menarik data presensi dari Google Sheets:', err.message);
       return { success: false, error: err.message };
-    } finally {
-      this.isPulling = false;
     }
   }
 
