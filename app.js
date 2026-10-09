@@ -1201,6 +1201,63 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function populateTtsVoices() {
+    const selVoice = document.getElementById('cfgTtsVoice');
+    const statusEl = document.getElementById('ttsVoiceStatus');
+    if (!selVoice || !window.soundEngine) return;
+
+    const voices = window.soundEngine.getAvailableVoices() || [];
+    const s = window.storageService ? window.storageService.getSettings() : {};
+    const selectedURI = s.ttsVoiceURI || '';
+
+    selVoice.innerHTML = '<option value="">-- Otomatis (Rekomendasi Suara Bahasa Indonesia Terbaik) --</option>';
+
+    voices.forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = v.voiceURI || v.name;
+      const lang = (v.lang || '').toLowerCase();
+      const name = v.name || '';
+      const isIndo = lang.startsWith('id') || name.toLowerCase().includes('indonesia');
+      const isNatural = name.toLowerCase().includes('natural') || name.toLowerCase().includes('gadis') || name.toLowerCase().includes('ardi');
+      
+      let badge = '';
+      if (isNatural) {
+        badge = '⭐ [Natural AI Jernih] ';
+      } else if (isIndo) {
+        badge = '🇮🇩 [Bahasa Indonesia] ';
+      } else if (lang.startsWith('ms')) {
+        badge = '🇲🇾 [Melayu] ';
+      }
+
+      opt.textContent = `${badge}${v.name} (${v.lang})`;
+      if (opt.value === selectedURI) {
+        opt.selected = true;
+      }
+      selVoice.appendChild(opt);
+    });
+
+    const activeVoice = window.soundEngine.getIndonesianVoice();
+    if (statusEl) {
+      if (activeVoice) {
+        const isNatural = activeVoice.name.toLowerCase().includes('natural') || activeVoice.name.toLowerCase().includes('gadis') || activeVoice.name.toLowerCase().includes('ardi');
+        const isIndo = (activeVoice.lang || '').toLowerCase().startsWith('id') || activeVoice.name.toLowerCase().includes('indonesia');
+        if (isNatural) {
+          statusEl.innerHTML = `🟢 <strong>Suara Aktif:</strong> ${activeVoice.name} <span style="color:#34d399; font-weight:600;">(Kualitas AI Natural Sangat Jernih)</span>`;
+        } else if (isIndo) {
+          statusEl.innerHTML = `🟢 <strong>Suara Aktif:</strong> ${activeVoice.name} <span style="color:#38bdf8;">(Bahasa Indonesia)</span>`;
+        } else {
+          statusEl.innerHTML = `🟡 <strong>Suara Aktif:</strong> ${activeVoice.name} <span style="color:#fbbf24;">(Cadangan Sistem)</span>`;
+        }
+      } else {
+        statusEl.innerHTML = `⚠️ <strong>Peringatan:</strong> Browser belum mendeteksi suara Bahasa Indonesia, sehingga menggunakan suara bawaan sistem Inggris yang membuat nama 'Muhamad' berbunyi seperti 'memet'. <em>Disarankan membuka web di Microsoft Edge untuk suara otomatis paling jernih!</em>`;
+      }
+    }
+  }
+
+  window.onVoicesLoaded = () => {
+    populateTtsVoices();
+  };
+
   function applySettingsUI() {
     const s = window.storageService.getSettings();
     const inJamMasukMulai = document.getElementById('cfgJamMasukMulai');
@@ -1222,6 +1279,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.soundEngine) {
       window.soundEngine.ttsEnabled = (s.ttsEnabled !== false);
     }
+
+    const inTtsVoice = document.getElementById('cfgTtsVoice');
+    const inTtsSpeed = document.getElementById('cfgTtsSpeed');
+    if (inTtsVoice && s.ttsVoiceURI !== undefined) inTtsVoice.value = s.ttsVoiceURI;
+    if (inTtsSpeed && s.ttsSpeed) inTtsSpeed.value = String(s.ttsSpeed);
+    populateTtsVoices();
 
     const inTtsTemplateMasuk = document.getElementById('cfgTtsTemplateMasuk');
     const inTtsTemplateTerlambat = document.getElementById('cfgTtsTemplateTerlambat');
@@ -1369,6 +1432,8 @@ document.addEventListener('DOMContentLoaded', () => {
       kategoriTanpaKartu: selTanpaKartu ? selTanpaKartu.value : 'Tidak membawa ID Card',
       cooldownMinutes: parseInt(document.getElementById('cfgCooldownScan').value, 10) || 30,
       ttsEnabled: document.getElementById('cfgTtsEnabled') ? document.getElementById('cfgTtsEnabled').checked : true,
+      ttsVoiceURI: document.getElementById('cfgTtsVoice') ? document.getElementById('cfgTtsVoice').value : '',
+      ttsSpeed: document.getElementById('cfgTtsSpeed') ? (parseFloat(document.getElementById('cfgTtsSpeed').value) || 0.95) : 0.95,
       ttsTemplateMasuk: document.getElementById('cfgTtsTemplateMasuk') ? document.getElementById('cfgTtsTemplateMasuk').value.trim() : 'Terima kasih, {nama}!',
       ttsTemplateTerlambat: document.getElementById('cfgTtsTemplateTerlambat') ? document.getElementById('cfgTtsTemplateTerlambat').value.trim() : 'Perhatian, {nama}, Anda terlambat.',
       ttsTemplatePulang: document.getElementById('cfgTtsTemplatePulang') ? document.getElementById('cfgTtsTemplatePulang').value.trim() : 'Terima kasih, {nama}, selamat jalan.',
@@ -1415,8 +1480,17 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnTestVoice) {
     btnTestVoice.addEventListener('click', () => {
       if (window.soundEngine) {
+        const selVoice = document.getElementById('cfgTtsVoice');
+        const selSpeed = document.getElementById('cfgTtsSpeed');
+        if (selVoice) {
+          window.storageService.saveSettings({ 
+            ttsVoiceURI: selVoice.value,
+            ttsSpeed: selSpeed ? parseFloat(selSpeed.value) || 0.95 : 0.95
+          });
+          populateTtsVoices();
+        }
         window.soundEngine.playSuccess();
-        window.soundEngine.speakStudent('Budi Santoso', 'success', 150);
+        window.soundEngine.speakStudent('Muhamad Al Fatih', 'success', 180);
       }
     });
   }
