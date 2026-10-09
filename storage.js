@@ -355,6 +355,98 @@ class StorageService {
     localStorage.setItem(this.KEYS.ATTENDANCE, '[]');
   }
 
+  /**
+   * Menggabungkan data presensi dari Google Sheets (Cloud) ke penyimpanan lokal.
+   * Mendukung sinkronisasi real-time 2 arah antara akun Petugas & Admin.
+   * Mencegah siswa absen ganda di akun/perangkat berbeda.
+   */
+  mergeTodayRecords(incomingRecords) {
+    if (!Array.isArray(incomingRecords) || incomingRecords.length === 0) {
+      return { addedCount: 0, totalCount: this.getTodayRecords().length };
+    }
+
+    const currentRecords = this.getTodayRecords();
+    let addedCount = 0;
+    let changed = false;
+
+    // Helper key generator (NISN tanpa 0 di depan + mode)
+    const makeKey = (r) => {
+      const cleanNisn = String(r.nisn || '').replace(/^'+/, '').trim().replace(/^0+/, '');
+      const mode = (r.mode === 'pulang' || r.type === 'Pulang' || r.status === 'Pulang') ? 'pulang' : 'masuk';
+      return `${cleanNisn}_${mode}`;
+    };
+
+    // Index existing local records by key
+    const localMap = new Map();
+    currentRecords.forEach((r, idx) => {
+      const key = makeKey(r);
+      if (key && !localMap.has(key)) {
+        localMap.set(key, { record: r, index: idx });
+      }
+    });
+
+    // Merge incoming cloud records
+    incomingRecords.forEach(cloudRec => {
+      const key = makeKey(cloudRec);
+      if (!key) return;
+
+      if (localMap.has(key)) {
+        const existing = localMap.get(key).record;
+        // Tandai sudah tersinkron jika sebelumnya pending
+        if (!existing.syncedToGas) {
+          existing.syncedToGas = true;
+          changed = true;
+        }
+      } else {
+        // Data presensi berasal dari akun/perangkat lain (misal Petugas absen, ditarik ke Admin)
+        const cleanNisn = String(cloudRec.nisn || '').replace(/^'+/, '').trim();
+        const mode = (cloudRec.mode === 'pulang' || cloudRec.type === 'Pulang' || cloudRec.status === 'Pulang') ? 'pulang' : 'masuk';
+        const isLate = (cloudRec.status === 'Terlambat' || cloudRec.type === 'Pelanggaran');
+        const isPulang = (mode === 'pulang');
+
+        const newLocalRecord = {
+          id: cloudRec.id || `gas_${cleanNisn}_${mode}_${Date.now()}`,
+          nisn: cleanNisn,
+          name: cloudRec.name || `Siswa (${cleanNisn})`,
+          class: cloudRec.class || 'Umum',
+          timestamp: cloudRec.timestamp || Date.now(),
+          date: cloudRec.date || this.getTodayString(),
+          time: cloudRec.time || '07:00:00',
+          mode: mode,
+          type: cloudRec.type || (isPulang ? 'Pulang' : (isLate ? 'Pelanggaran' : 'Hadir')),
+          status: cloudRec.status || (isPulang ? 'Pulang' : (isLate ? 'Terlambat' : 'Tepat Waktu')),
+          keterangan: cloudRec.keterangan || (isPulang ? 'Presensi Pulang Sekolah' : (isLate ? 'Terlambat' : 'Tepat Waktu')),
+          withoutCard: !!cloudRec.withoutCard,
+          points: typeof cloudRec.points === 'number' ? cloudRec.points : (isLate ? 1 : 0),
+          guardName: cloudRec.guardName || cloudRec.guardUsername || 'petugas',
+          guardUsername: cloudRec.guardUsername || 'petugas',
+          waktuInput: cloudRec.waktuInput || `${cloudRec.date || this.getTodayString()} ${cloudRec.time || '07:00:00'}`,
+          syncedToGas: true,
+          syncedToFirebase: true,
+          source: cloudRec.source || 'gas_sync'
+        };
+
+        currentRecords.push(newLocalRecord);
+        localMap.set(key, { record: newLocalRecord, index: currentRecords.length - 1 });
+        addedCount++;
+        changed = true;
+      }
+    });
+
+    if (changed) {
+      // Urutkan presensi: paling baru di urutan teratas
+      currentRecords.sort((a, b) => {
+        const timeA = String(a.waktuInput || a.time || '');
+        const timeB = String(b.waktuInput || b.time || '');
+        return timeB.localeCompare(timeA);
+      });
+
+      this.saveTodayRecords(currentRecords);
+    }
+
+    return { addedCount, totalCount: currentRecords.length };
+  }
+
   // --- MASTER STUDENTS (NISN -> { name, class }) ---
   getMasterStudents() {
     try {
