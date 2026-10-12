@@ -673,14 +673,32 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
+    // Helper hitung selisih menit keterlambatan
+    const getLateDiffMinutes = (startHM, endHM) => {
+      try {
+        const [sh, sm] = startHM.split(':').map(Number);
+        const [eh, em] = endHM.split(':').map(Number);
+        return Math.max(0, (eh * 60 + em) - (sh * 60 + sm));
+      } catch (_) { return 0; }
+    };
+
     // Tentukan Tepat Waktu vs Terlambat
     const isLate = (curHM > jamToleransi);
+    const lateMinutes = isLate ? getLateDiffMinutes(jamToleransi, curHM) : 0;
+    const pencatatName = guardUsername || guardName || (settings.defaultGuardName || 'admin sekolah');
+
     const statusText = isLate ? 'Terlambat' : 'Tepat Waktu';
     const points = isLate ? (parseInt(settings.poinPelanggaran, 10) || 1) : 0;
     const tipe = isLate ? 'Pelanggaran' : 'Hadir';
+
+    // Format Keterangan absensi sesuai standar aplikasi ini: "Terlambat 52 menit (Input: admin sekolah)" atau "Tepat Waktu (Input: admin sekolah)"
     const keterangan = isLate 
+      ? `Terlambat ${lateMinutes} menit (Input: ${pencatatName})` 
+      : `Tepat Waktu (Input: ${pencatatName})`;
+
+    const keteranganPoin = isLate 
       ? (settings.kategoriTerlambat || 'Terlambat hadir di sekolah lebih dari 10 menit.') 
-      : 'Tepat Waktu';
+      : '';
 
     // Play Audio
     if (isLate) {
@@ -702,11 +720,15 @@ document.addEventListener('DOMContentLoaded', () => {
       mode: 'masuk',
       type: tipe,
       status: statusText,
+      statusAbsensi: 'Hadir',
+      isLate: isLate,
+      lateMinutes: lateMinutes,
       keterangan: keterangan,
+      keteranganPoin: keteranganPoin,
       withoutCard: false,
       points: points,
-      guardName: guardName,
-      guardUsername: guardUsername,
+      guardName: pencatatName,
+      guardUsername: pencatatName,
       waktuInput: waktuInput,
       syncedToGas: false,
       syncedToFirebase: false,
@@ -806,9 +828,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const selectViolationCategory = document.getElementById('selectViolationCategory');
     if (selectViolationCategory) {
-      const katTerlambat = settings.kategoriTerlambat || 'Terlambat hadir di kelas lebih dari 10 menit.';
-      const katTanpaKartu = settings.kategoriTanpaKartu || 'Tidak membawa ID Card';
-      const comboText = `${katTerlambat}. ${katTanpaKartu}`;
+      const katTerlambat = settings.kategoriTerlambat || 'Terlambat hadir di sekolah lebih dari 10 menit.';
+      const katTanpaKartu = settings.kategoriTanpaKartu || 'Tidak Membawa ID Card/Kartu Pelajar';
+      const comboText = `${katTerlambat}.. ${katTanpaKartu}`;
 
       selectViolationCategory.innerHTML = `
         <option value="${katTanpaKartu}">${katTanpaKartu}</option>
@@ -953,17 +975,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const toleransiLimit = (settings.jamToleransi || '06:40') + ':00';
     const isLate = currentTimeStr > toleransiLimit;
+    const getLateDiffMinutes = (startHM, endHM) => {
+      try {
+        const [sh, sm] = startHM.split(':').map(Number);
+        const [eh, em] = endHM.split(':').map(Number);
+        return Math.max(0, (eh * 60 + em) - (sh * 60 + sm));
+      } catch (_) { return 0; }
+    };
+    const lateMinutes = isLate ? getLateDiffMinutes(settings.jamToleransi || '06:40', currentTimeStr.substring(0, 5)) : 0;
+    const pencatatName = guardUsername || guardName || (settings.defaultGuardName || 'admin sekolah');
 
     let statusText = isLate ? 'Terlambat' : 'Tepat Waktu';
     let tipe = 'Pelanggaran';
     let totalPoints = (parseInt(settings.poinTanpaKartu, 10) || 2) + (isLate ? (parseInt(settings.poinPelanggaran, 10) || 1) : 0);
-    let keterangan = isLate ? `${settings.kategoriTerlambat || 'Terlambat hadir di sekolah lebih dari 10 menit.'}. ${settings.kategoriTanpaKartu || 'Tidak Membawa ID Card/Kartu Pelajar'}` : (settings.kategoriTanpaKartu || 'Tidak Membawa ID Card/Kartu Pelajar');
+
+    let keterangan = isPulang
+      ? `Presensi Pulang (Input: ${pencatatName})`
+      : (isLate 
+          ? `Terlambat ${lateMinutes} menit (Input: ${pencatatName})` 
+          : `Tepat Waktu (Input: ${pencatatName})`);
+
+    let keteranganPoin = isPulang
+      ? 'Presensi Pulang (Tanpa Kartu)'
+      : (isLate 
+          ? `${settings.kategoriTerlambat || 'Terlambat hadir di sekolah lebih dari 10 menit.'}. ${settings.kategoriTanpaKartu || 'Tidak Membawa ID Card/Kartu Pelajar'}` 
+          : (settings.kategoriTanpaKartu || 'Tidak Membawa ID Card/Kartu Pelajar'));
 
     if (isPulang) {
       statusText = 'Pulang';
       tipe = 'Pulang';
       totalPoints = 0;
-      keterangan = 'Presensi Pulang (Tanpa Kartu)';
       window.soundEngine.playPulang();
       window.soundEngine.speakStudent(name, 'pulang');
     } else {
@@ -982,11 +1023,15 @@ document.addEventListener('DOMContentLoaded', () => {
       mode: isPulang ? 'pulang' : 'masuk',
       type: tipe,
       status: statusText,
+      statusAbsensi: isPulang ? 'Pulang' : 'Hadir',
+      isLate: isLate,
+      lateMinutes: lateMinutes,
       keterangan: keterangan,
+      keteranganPoin: keteranganPoin,
       withoutCard: true,
       points: totalPoints,
-      guardName: guardName,
-      guardUsername: guardUsername,
+      guardName: pencatatName,
+      guardUsername: pencatatName,
       waktuInput: waktuInput,
       syncedToGas: false,
       syncedToFirebase: false,
@@ -1184,7 +1229,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (selTanpaKartu) {
-      const defaultTanpaKartu = s.kategoriTanpaKartu || 'Tidak membawa ID Card';
+      const defaultTanpaKartu = s.kategoriTanpaKartu || 'Tidak Membawa ID Card/Kartu Pelajar';
       let optionsHtml = '';
       let foundDefault = false;
 
@@ -1195,7 +1240,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       if (!foundDefault) {
-        optionsHtml = `<option value="${defaultTanpaKartu}" data-points="${s.poinTanpaKartu || 5}" selected>${defaultTanpaKartu} (${s.poinTanpaKartu || 5} Poin)</option>` + optionsHtml;
+        optionsHtml = `<option value="${defaultTanpaKartu}" data-points="${s.poinTanpaKartu || 2}" selected>${defaultTanpaKartu} (${s.poinTanpaKartu || 2} Poin)</option>` + optionsHtml;
       }
       selTanpaKartu.innerHTML = optionsHtml;
     }
@@ -1428,8 +1473,8 @@ document.addEventListener('DOMContentLoaded', () => {
       lockOncePerDay: inLockOnce ? inLockOnce.checked : true,
       poinPelanggaran: parseInt(document.getElementById('cfgPoinPelanggaran').value, 10) || 1,
       poinTanpaKartu: parseInt(document.getElementById('cfgPoinTanpaKartu').value, 10) || 2,
-      kategoriTerlambat: selTerlambat ? selTerlambat.value : 'Terlambat hadir di kelas lebih dari 10 menit.',
-      kategoriTanpaKartu: selTanpaKartu ? selTanpaKartu.value : 'Tidak membawa ID Card',
+      kategoriTerlambat: selTerlambat ? selTerlambat.value : 'Terlambat hadir di sekolah lebih dari 10 menit.',
+      kategoriTanpaKartu: selTanpaKartu ? selTanpaKartu.value : 'Tidak Membawa ID Card/Kartu Pelajar',
       cooldownMinutes: parseInt(document.getElementById('cfgCooldownScan').value, 10) || 30,
       ttsEnabled: document.getElementById('cfgTtsEnabled') ? document.getElementById('cfgTtsEnabled').checked : true,
       ttsVoiceURI: document.getElementById('cfgTtsVoice') ? document.getElementById('cfgTtsVoice').value : '',
