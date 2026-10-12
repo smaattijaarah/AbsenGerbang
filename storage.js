@@ -290,6 +290,9 @@ class StorageService {
       if (!res.spreadsheetId || res.spreadsheetId.trim() === '') {
         res.spreadsheetId = this.defaultSettings.spreadsheetId;
       }
+      if (!res.kategoriTanpaKartu || res.kategoriTanpaKartu === 'Tidak membawa ID Card') {
+        res.kategoriTanpaKartu = 'Tidak Membawa ID Card/Kartu Pelajar';
+      }
       return res;
     } catch (e) {
       return { ...this.defaultSettings };
