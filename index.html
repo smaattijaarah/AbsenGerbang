@@ -1,27 +1,27 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>E-Absensi SMA AT-TIJAARAH</title>
-  <meta name="description"
-    content="Aplikasi scanner kehadiran siswa SMA AT-TIJAARAH">
+  <meta name="description" content="Aplikasi scanner kehadiran siswa SMA AT-TIJAARAH">
 
-    <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap"
-      rel="stylesheet">
+  <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap"
+    rel="stylesheet">
 
-    <!-- QR Scanner Library (CDN) -->
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <!-- QR Scanner Library (CDN) -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
-    <!-- Firebase App & Realtime Database -->
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+  <!-- Firebase App & Realtime Database -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
-    <link rel="stylesheet" href="./style.css?v=3.0">
+  <link rel="stylesheet" href="./style.css?v=3.0">
 </head>
 
 <body>
@@ -306,18 +306,18 @@
             E-Absensi:</label>
           <select id="selectViolationCategory"
             style="width: 100%; padding: 9px 12px; background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--border); border-radius: 6px;">
-            <option value="Tidak membawa ID Card">Tidak membawa ID Card</option>
+            <option value="Tidak Membawa ID Card/Kartu Pelajar">Tidak Membawa ID Card/Kartu Pelajar</option>
             <option value="Terlambat hadir di kelas lebih dari 10 menit.">Terlambat hadir di kelas lebih dari 10 menit.
             </option>
-            <option value="Terlambat hadir di kelas lebih dari 10 menit. Tidak membawa ID Card">Terlambat hadir di kelas
-              lebih dari 10 menit. Tidak membawa ID Card</option>
+            <option value="Terlambat hadir di sekolah lebih dari 10 menit.. Tidak Membawa ID Card/Kartu Pelajar">Terlambat hadir di sekolah
+              lebih dari 10 menit.. Tidak Membawa ID Card/Kartu Pelajar</option>
           </select>
         </div>
 
         <!-- Detail Poin Pelanggaran -->
         <div class="violation-summary-box">
           <div class="violation-row">
-            <span>Pelanggaran: <strong>Tidak membawa ID Card</strong></span>
+            <span>Pelanggaran: <strong>Tidak Membawa ID Card/Kartu Pelajar</strong></span>
             <span class="point-tag warning" id="previewPoinTanpaKartu">+5 Poin</span>
           </div>
           <div class="violation-row" id="rowLateViolation">
@@ -390,7 +390,7 @@
               <label for="cfgKategoriTanpaKartu">📌 Kategori Poin untuk Siswa Tanpa ID Card:</label>
               <select id="cfgKategoriTanpaKartu"
                 style="width: 100%; padding: 10px; background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--border); border-radius: 6px;">
-                <option value="Tidak membawa ID Card">Tidak membawa ID Card</option>
+                <option value="Tidak Membawa ID Card/Kartu Pelajar">Tidak Membawa ID Card/Kartu Pelajar</option>
               </select>
               <small>Kategori ini otomatis digunakan saat pencatatan manual siswa tidak membawa kartu.</small>
             </div>
@@ -494,12 +494,15 @@
                 siswa.</small>
 
               <!-- Pemilihan Suara (Voice Selector) & Kecepatan -->
-              <div style="background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 6px; padding: 10px; margin-bottom: 12px;">
+              <div
+                style="background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 6px; padding: 10px; margin-bottom: 12px;">
                 <div style="margin-bottom: 8px;">
-                  <label for="cfgTtsVoice" style="font-size: 0.8rem; color: #38bdf8; display: block; font-weight: 600; margin-bottom: 4px;">
+                  <label for="cfgTtsVoice"
+                    style="font-size: 0.8rem; color: #38bdf8; display: block; font-weight: 600; margin-bottom: 4px;">
                     🎙️ Pilihan Karakter Suara:
                   </label>
-                  <select id="cfgTtsVoice" style="width: 100%; padding: 8px 10px; background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem;">
+                  <select id="cfgTtsVoice"
+                    style="width: 100%; padding: 8px 10px; background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem;">
                     <option value="">Otomatis (Pilih Suara Bahasa Indonesia Terbaik)</option>
                   </select>
                   <div id="ttsVoiceStatus" style="margin-top: 5px; font-size: 0.75rem; color: #94a3b8;">
@@ -509,10 +512,12 @@
 
                 <div style="display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 8px;">
                   <div>
-                    <label for="cfgTtsSpeed" style="font-size: 0.8rem; color: #94a3b8; display: block; margin-bottom: 4px;">
+                    <label for="cfgTtsSpeed"
+                      style="font-size: 0.8rem; color: #94a3b8; display: block; margin-bottom: 4px;">
                       ⚡ Kecepatan Panggilan Nama:
                     </label>
-                    <select id="cfgTtsSpeed" style="width: 100%; padding: 7px 10px; background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--border); border-radius: 6px; font-size: 0.82rem;">
+                    <select id="cfgTtsSpeed"
+                      style="width: 100%; padding: 7px 10px; background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--border); border-radius: 6px; font-size: 0.82rem;">
                       <option value="0.9">0.90x (Pelan & Artikulasi Paling Jelas)</option>
                       <option value="0.95" selected>0.95x (Sedang & Jernih - Direkomendasikan)</option>
                       <option value="1.0">1.00x (Kecepatan Normal)</option>
@@ -521,9 +526,12 @@
                   </div>
                 </div>
 
-                <div style="margin-top: 8px; font-size: 0.75rem; line-height: 1.4; color: #7dd3fc; background: rgba(56, 189, 248, 0.08); padding: 8px; border-radius: 4px;">
+                <div
+                  style="margin-top: 8px; font-size: 0.75rem; line-height: 1.4; color: #7dd3fc; background: rgba(56, 189, 248, 0.08); padding: 8px; border-radius: 4px;">
                   💡 <strong>Tips Agar Pengucapan 100% Orang Indonesia Banget:</strong><br>
-                  Buka aplikasi ini di <strong>Microsoft Edge</strong>. Edge otomatis memiliki suara <em>"Microsoft Gadis Online (Natural)"</em> yang sangat merdu, fasih, dan pelafalan nama lokal (seperti Muhamad) terdengar sempurna layaknya orang asli Indonesia tanpa perlu instal aplikasi tambahan.
+                  Buka aplikasi ini di <strong>Microsoft Edge</strong>. Edge otomatis memiliki suara <em>"Microsoft
+                    Gadis Online (Natural)"</em> yang sangat merdu, fasih, dan pelafalan nama lokal (seperti Muhamad)
+                  terdengar sempurna layaknya orang asli Indonesia tanpa perlu instal aplikasi tambahan.
                 </div>
               </div>
 
@@ -633,11 +641,15 @@
                   <option value="Senin, Selasa, Rabu, Kamis, Jumat">Senin s.d. Jumat</option>
                   <option value="Senin, Selasa, Rabu, Kamis, Jumat, Sabtu">Senin s.d. Sabtu</option>
                 </select>
-                <small style="color: var(--text-muted); font-size: 0.75rem;">Mencegah petugas membuka aplikasi presensi dari rumah di luar jadwal piketnya.</small>
+                <small style="color: var(--text-muted); font-size: 0.75rem;">Mencegah petugas membuka aplikasi presensi
+                  dari rumah di luar jadwal piketnya.</small>
               </div>
             </div>
-            <div style="background: rgba(56, 189, 248, 0.06); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 6px; padding: 8px 12px; margin-top: 6px; margin-bottom: 10px;">
-              <small style="color: #7dd3fc; display: block;">🔒 <strong>Batas 2 Perangkat:</strong> Setiap akun otomatis terkunci maksimal pada 2 HP/Laptop pertama yang digunakan. Tombol <em>Reset Perangkat</em> di tabel dapat digunakan jika perangkat petugas berganti.</small>
+            <div
+              style="background: rgba(56, 189, 248, 0.06); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 6px; padding: 8px 12px; margin-top: 6px; margin-bottom: 10px;">
+              <small style="color: #7dd3fc; display: block;">🔒 <strong>Batas 2 Perangkat:</strong> Setiap akun otomatis
+                terkunci maksimal pada 2 HP/Laptop pertama yang digunakan. Tombol <em>Reset Perangkat</em> di tabel
+                dapat digunakan jika perangkat petugas berganti.</small>
             </div>
             <div style="display: flex; gap: 8px; margin-top: 10px;">
               <button id="btnSaveUserSpreadsheet" type="button" class="btn-primary-action"
@@ -655,7 +667,8 @@
               <strong>1 kali saja</strong> secara mandiri di <a href="https://script.google.com" target="_blank"
                 style="color: var(--cyan); text-decoration: underline;">script.google.com</a>. Setelah itu, Anda
               <strong>hanya perlu memasukkan ID Spreadsheet E-Absensi</strong> (atau tempel link spreadsheet) kapan pun
-              berganti file presensi!</p>
+              berganti file presensi!
+            </p>
           </div>
           <div class="form-group">
             <label for="cfgSpreadsheetId">ID Spreadsheet E-Absensi Target <span
