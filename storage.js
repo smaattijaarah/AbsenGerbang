@@ -402,12 +402,56 @@ class StorageService {
           existing.syncedToGas = true;
           changed = true;
         }
+        // Lengkapi data lokal jika server punya data poin / tanpa kartu / status lebih spesifik
+        if (cloudRec.withoutCard && !existing.withoutCard) {
+          existing.withoutCard = true;
+          changed = true;
+        }
+        if (typeof cloudRec.points === 'number' && cloudRec.points > (existing.points || 0)) {
+          existing.points = cloudRec.points;
+          changed = true;
+        }
+        if (cloudRec.status && cloudRec.status !== existing.status) {
+          if (cloudRec.status === 'Tidak Scan' || cloudRec.status === 'Terlambat') {
+            existing.status = cloudRec.status;
+            existing.keterangan = cloudRec.keterangan || cloudRec.status;
+            changed = true;
+          }
+        }
       } else {
         // Data presensi berasal dari akun/perangkat lain (misal Petugas absen, ditarik ke Admin)
         const cleanNisn = String(cloudRec.nisn || '').replace(/^'+/, '').trim();
         const mode = (cloudRec.mode === 'pulang' || cloudRec.type === 'Pulang' || cloudRec.status === 'Pulang') ? 'pulang' : 'masuk';
-        const isLate = (cloudRec.status === 'Terlambat' || cloudRec.type === 'Pelanggaran');
+        const isTidakScan = (cloudRec.status === 'Tidak Scan' || cloudRec.status === 'Belum Scan' || cloudRec.status === 'Alpa' || cloudRec.status === 'Tidak Hadir' || cloudRec.keterangan === 'Tidak Scan');
+        const isLate = !isTidakScan && (cloudRec.status === 'Terlambat' || cloudRec.type === 'Pelanggaran');
         const isPulang = (mode === 'pulang');
+
+        let recStatus = 'Tepat Waktu';
+        let recType = 'Hadir';
+        let recKet = 'Tepat Waktu';
+        let recPoints = 0;
+
+        if (isPulang) {
+          recStatus = 'Pulang';
+          recType = 'Pulang';
+          recKet = cloudRec.keterangan || 'Presensi Pulang Sekolah';
+          recPoints = 0;
+        } else if (isTidakScan) {
+          recStatus = 'Tidak Scan';
+          recType = 'Tidak Hadir';
+          recKet = 'Tidak Scan';
+          recPoints = 0;
+        } else if (isLate) {
+          recStatus = 'Terlambat';
+          recType = 'Pelanggaran';
+          recKet = cloudRec.keterangan || 'Terlambat';
+          recPoints = typeof cloudRec.points === 'number' ? cloudRec.points : 1;
+        } else {
+          recStatus = 'Tepat Waktu';
+          recType = 'Hadir';
+          recKet = cloudRec.keterangan || 'Tepat Waktu';
+          recPoints = 0;
+        }
 
         const newLocalRecord = {
           id: cloudRec.id || `gas_${cleanNisn}_${mode}_${Date.now()}`,
@@ -416,13 +460,13 @@ class StorageService {
           class: cloudRec.class || 'Umum',
           timestamp: cloudRec.timestamp || Date.now(),
           date: cloudRec.date || this.getTodayString(),
-          time: cloudRec.time || '07:00:00',
+          time: cloudRec.time || (isTidakScan ? '-' : '07:00:00'),
           mode: mode,
-          type: cloudRec.type || (isPulang ? 'Pulang' : (isLate ? 'Pelanggaran' : 'Hadir')),
-          status: cloudRec.status || (isPulang ? 'Pulang' : (isLate ? 'Terlambat' : 'Tepat Waktu')),
-          keterangan: cloudRec.keterangan || (isPulang ? 'Presensi Pulang Sekolah' : (isLate ? 'Terlambat' : 'Tepat Waktu')),
+          type: recType,
+          status: recStatus,
+          keterangan: recKet,
           withoutCard: !!cloudRec.withoutCard,
-          points: typeof cloudRec.points === 'number' ? cloudRec.points : (isLate ? 1 : 0),
+          points: recPoints,
           guardName: cloudRec.guardName || cloudRec.guardUsername || 'petugas',
           guardUsername: cloudRec.guardUsername || 'petugas',
           waktuInput: cloudRec.waktuInput || `${cloudRec.date || this.getTodayString()} ${cloudRec.time || '07:00:00'}`,
