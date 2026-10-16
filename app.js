@@ -292,16 +292,23 @@ document.addEventListener('DOMContentLoaded', () => {
     let late = 0;
     let pulang = 0;
     let withoutCard = 0;
+    let tidakScan = 0;
 
     records.forEach(r => {
       if (r.withoutCard) withoutCard++;
       if (r.status === 'Tepat Waktu') onTime++;
       else if (r.status === 'Terlambat' || r.status === 'Kesiangan') late++;
       else if (r.status === 'Pulang' || r.type === 'Pulang') pulang++;
+      else if (r.status === 'Tidak Scan' || r.status === 'Belum Scan' || r.status === 'Alpa' || r.status === 'Tidak Hadir' || r.keterangan === 'Tidak Scan') tidakScan++;
     });
 
     const countPulangEl = document.getElementById('countPulang');
     if (countPulangEl) countPulangEl.textContent = pulang;
+
+    const countTidakScanEl = document.getElementById('countTidakScan');
+    const badgeTidakScan = document.getElementById('badgeTidakScan');
+    if (countTidakScanEl) countTidakScanEl.textContent = tidakScan;
+    if (badgeTidakScan) badgeTidakScan.style.display = tidakScan > 0 ? 'inline-flex' : 'none';
 
     countTotalEl.textContent = total;
     countOnTimeEl.textContent = onTime;
@@ -331,6 +338,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     attendanceList.innerHTML = filtered.map(r => {
       const isLate = (r.status === 'Terlambat' || r.status === 'Kesiangan');
+      const isTidakScan = (r.status === 'Tidak Scan' || r.status === 'Belum Scan' || r.status === 'Alpa' || r.status === 'Tidak Hadir' || r.keterangan === 'Tidak Scan');
+      const isPulang = (r.status === 'Pulang' || r.type === 'Pulang');
       const initial = (r.name || 'S').charAt(0).toUpperCase();
 
       let badges = '';
@@ -338,7 +347,11 @@ document.addEventListener('DOMContentLoaded', () => {
         badges += `<span class="tag-label without-card">⚠️ Tanpa Kartu</span>`;
       }
       if (isLate) {
-        badges += `<span class="tag-label late">⏰ Terlambat (+${r.points}p)</span>`;
+        badges += `<span class="tag-label late">⏰ Terlambat (+${r.points || 1}p)</span>`;
+      } else if (isTidakScan) {
+        badges += `<span class="tag-label tidak-scan" style="background: rgba(239, 68, 68, 0.16); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.35); padding: 1px 7px; border-radius: 5px; font-size: 0.76rem; font-weight: 700;">❌ Tidak Scan</span>`;
+      } else if (isPulang) {
+        badges += `<span class="tag-label pulang" style="background: rgba(99, 102, 241, 0.16); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.35); padding: 1px 7px; border-radius: 5px; font-size: 0.76rem; font-weight: 700;">🏠 Pulang</span>`;
       } else {
         badges += `<span class="tag-label ontime">✅ Tepat Waktu</span>`;
       }
