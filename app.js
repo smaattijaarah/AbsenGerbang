@@ -295,11 +295,40 @@ document.addEventListener('DOMContentLoaded', () => {
     let tidakScan = 0;
 
     records.forEach(r => {
+      const ketLower = String(r.keterangan || '').toLowerCase();
+      const ketPoinLower = String(r.keteranganPoin || '').toLowerCase();
+      const isTidakScanRec = (
+        r.status === 'Tidak Scan' || 
+        r.status === 'Belum Scan' || 
+        r.status === 'Alpa' || 
+        r.status === 'Alpha' || 
+        r.status === 'Tidak Hadir' || 
+        r.keterangan === 'Tidak Scan' ||
+        ketLower.indexOf('tidak masuk') !== -1 ||
+        ketLower.indexOf('alpha') !== -1 ||
+        ketLower.indexOf('alpa') !== -1 ||
+        ketLower.indexOf('tanpa keterangan') !== -1 ||
+        ketLower.indexOf('tidak scan') !== -1 ||
+        ketLower.indexOf('belum scan') !== -1 ||
+        ketPoinLower.indexOf('tidak masuk') !== -1 ||
+        ketPoinLower.indexOf('alpha') !== -1 ||
+        ketPoinLower.indexOf('alpa') !== -1 ||
+        ketPoinLower.indexOf('tanpa keterangan') !== -1
+      );
+      const isPulangRec = !isTidakScanRec && (r.status === 'Pulang' || r.type === 'Pulang');
+      const isLateRec = !isTidakScanRec && !isPulangRec && (
+        r.status === 'Terlambat' || 
+        r.status === 'Kesiangan' || 
+        ketLower.indexOf('terlambat') !== -1 || 
+        ketLower.indexOf('kesiangan') !== -1 ||
+        ketLower.indexOf('telat') !== -1
+      );
+
       if (r.withoutCard) withoutCard++;
-      if (r.status === 'Tepat Waktu') onTime++;
-      else if (r.status === 'Terlambat' || r.status === 'Kesiangan') late++;
-      else if (r.status === 'Pulang' || r.type === 'Pulang') pulang++;
-      else if (r.status === 'Tidak Scan' || r.status === 'Belum Scan' || r.status === 'Alpa' || r.status === 'Tidak Hadir' || r.keterangan === 'Tidak Scan') tidakScan++;
+      if (isTidakScanRec) tidakScan++;
+      else if (isPulangRec) pulang++;
+      else if (isLateRec) late++;
+      else onTime++;
     });
 
     const countPulangEl = document.getElementById('countPulang');
@@ -337,24 +366,52 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     attendanceList.innerHTML = filtered.map(r => {
-      const isLate = (r.status === 'Terlambat' || r.status === 'Kesiangan');
-      const isTidakScan = (r.status === 'Tidak Scan' || r.status === 'Belum Scan' || r.status === 'Alpa' || r.status === 'Tidak Hadir' || r.keterangan === 'Tidak Scan');
-      const isPulang = (r.status === 'Pulang' || r.type === 'Pulang');
+      const ketLower = String(r.keterangan || '').toLowerCase();
+      const ketPoinLower = String(r.keteranganPoin || '').toLowerCase();
+      const isTidakScan = (
+        r.status === 'Tidak Scan' || 
+        r.status === 'Belum Scan' || 
+        r.status === 'Alpa' || 
+        r.status === 'Alpha' || 
+        r.status === 'Tidak Hadir' || 
+        r.keterangan === 'Tidak Scan' ||
+        ketLower.indexOf('tidak masuk') !== -1 ||
+        ketLower.indexOf('alpha') !== -1 ||
+        ketLower.indexOf('alpa') !== -1 ||
+        ketLower.indexOf('tanpa keterangan') !== -1 ||
+        ketLower.indexOf('tidak scan') !== -1 ||
+        ketLower.indexOf('belum scan') !== -1 ||
+        ketPoinLower.indexOf('tidak masuk') !== -1 ||
+        ketPoinLower.indexOf('alpha') !== -1 ||
+        ketPoinLower.indexOf('alpa') !== -1 ||
+        ketPoinLower.indexOf('tanpa keterangan') !== -1
+      );
+      const isPulang = !isTidakScan && (r.status === 'Pulang' || r.type === 'Pulang');
+      const isLate = !isTidakScan && !isPulang && (
+        r.status === 'Terlambat' || 
+        r.status === 'Kesiangan' ||
+        ketLower.indexOf('terlambat') !== -1 ||
+        ketLower.indexOf('kesiangan') !== -1 ||
+        ketLower.indexOf('telat') !== -1
+      );
       const initial = (r.name || 'S').charAt(0).toUpperCase();
 
       let badges = '';
       if (r.withoutCard) {
         badges += `<span class="tag-label without-card">⚠️ Tanpa Kartu</span>`;
       }
-      if (isLate) {
-        badges += `<span class="tag-label late">⏰ Terlambat (+${r.points || 1}p)</span>`;
-      } else if (isTidakScan) {
+      if (isTidakScan) {
         badges += `<span class="tag-label tidak-scan" style="background: rgba(239, 68, 68, 0.16); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.35); padding: 1px 7px; border-radius: 5px; font-size: 0.76rem; font-weight: 700;">❌ Tidak Scan</span>`;
+      } else if (isLate) {
+        badges += `<span class="tag-label late">⏰ Terlambat (+${r.points || 1}p)</span>`;
       } else if (isPulang) {
         badges += `<span class="tag-label pulang" style="background: rgba(99, 102, 241, 0.16); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.35); padding: 1px 7px; border-radius: 5px; font-size: 0.76rem; font-weight: 700;">🏠 Pulang</span>`;
       } else {
         badges += `<span class="tag-label ontime">✅ Tepat Waktu</span>`;
       }
+
+      const displayTime = isTidakScan ? '-' : (r.time && r.time !== '-' ? r.time : '-');
+      const subKet = isTidakScan && r.keterangan && r.keterangan !== 'Tidak Scan' ? ` • ${r.keterangan}` : '';
 
       return `
         <li class="clean-student-item">
@@ -366,12 +423,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 <span class="class-badge" style="background: rgba(14, 165, 233, 0.16); color: #38bdf8; border: 1px solid rgba(14, 165, 233, 0.35); padding: 1px 7px; border-radius: 5px; font-size: 0.76rem; font-weight: 700;">Kelas: ${r.class || '-'}</span>
               </div>
               <div class="student-sub-text">
-                <span>NISN: ${r.nisn}</span>
+                <span>NISN: ${r.nisn}</span>${subKet ? `<span style="color: #f87171; font-weight: 500;">${subKet}</span>` : ''}
               </div>
             </div>
           </div>
           <div class="student-meta-right">
-            <div class="scan-time-badge">${r.time}</div>
+            <div class="scan-time-badge">${displayTime}</div>
             <div style="display: flex; gap: 4px;">${badges}</div>
           </div>
         </li>
