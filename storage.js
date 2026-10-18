@@ -411,10 +411,45 @@ class StorageService {
           existing.points = cloudRec.points;
           changed = true;
         }
-        if (cloudRec.status && cloudRec.status !== existing.status) {
-          if (cloudRec.status === 'Tidak Scan' || cloudRec.status === 'Terlambat') {
-            existing.status = cloudRec.status;
-            existing.keterangan = cloudRec.keterangan || cloudRec.status;
+        const cloudKetLower = String(cloudRec.keterangan || '').toLowerCase();
+        const cloudKetPoinLower = String(cloudRec.keteranganPoin || '').toLowerCase();
+        const serverIsTidakScan = (
+          cloudRec.status === 'Tidak Scan' || 
+          cloudRec.status === 'Belum Scan' || 
+          cloudRec.status === 'Alpa' || 
+          cloudRec.status === 'Alpha' || 
+          cloudRec.status === 'Tidak Hadir' || 
+          cloudRec.keterangan === 'Tidak Scan' ||
+          cloudKetLower.indexOf('tidak masuk') !== -1 ||
+          cloudKetLower.indexOf('alpha') !== -1 ||
+          cloudKetLower.indexOf('alpa') !== -1 ||
+          cloudKetLower.indexOf('tanpa keterangan') !== -1 ||
+          cloudKetLower.indexOf('tidak scan') !== -1 ||
+          cloudKetPoinLower.indexOf('tidak masuk') !== -1 ||
+          cloudKetPoinLower.indexOf('alpha') !== -1 ||
+          cloudKetPoinLower.indexOf('alpa') !== -1
+        );
+
+        if (serverIsTidakScan) {
+          if (existing.status !== 'Tidak Scan') {
+            existing.status = 'Tidak Scan';
+            existing.type = 'Tidak Hadir';
+            existing.keterangan = cloudRec.keterangan || 'Tidak Scan';
+            existing.points = 0;
+            existing.time = '-';
+            changed = true;
+          }
+        } else if (cloudRec.status && cloudRec.status !== existing.status) {
+          const isReallyLate = (
+            cloudRec.status === 'Terlambat' ||
+            cloudKetLower.indexOf('terlambat') !== -1 ||
+            cloudKetLower.indexOf('kesiangan') !== -1 ||
+            cloudKetLower.indexOf('telat') !== -1
+          );
+          if (isReallyLate && existing.status !== 'Pulang') {
+            existing.status = 'Terlambat';
+            existing.type = 'Pelanggaran';
+            existing.keterangan = cloudRec.keterangan || 'Terlambat';
             changed = true;
           }
         }
@@ -422,14 +457,38 @@ class StorageService {
         // Data presensi berasal dari akun/perangkat lain (misal Petugas absen, ditarik ke Admin)
         const cleanNisn = String(cloudRec.nisn || '').replace(/^'+/, '').trim();
         const mode = (cloudRec.mode === 'pulang' || cloudRec.type === 'Pulang' || cloudRec.status === 'Pulang') ? 'pulang' : 'masuk';
-        const isTidakScan = (cloudRec.status === 'Tidak Scan' || cloudRec.status === 'Belum Scan' || cloudRec.status === 'Alpa' || cloudRec.status === 'Tidak Hadir' || cloudRec.keterangan === 'Tidak Scan');
-        const isLate = !isTidakScan && (cloudRec.status === 'Terlambat' || cloudRec.type === 'Pelanggaran');
+        const cloudKetLower = String(cloudRec.keterangan || '').toLowerCase();
+        const cloudKetPoinLower = String(cloudRec.keteranganPoin || '').toLowerCase();
+        const isTidakScan = (
+          cloudRec.status === 'Tidak Scan' || 
+          cloudRec.status === 'Belum Scan' || 
+          cloudRec.status === 'Alpa' || 
+          cloudRec.status === 'Alpha' || 
+          cloudRec.status === 'Tidak Hadir' || 
+          cloudRec.keterangan === 'Tidak Scan' ||
+          cloudKetLower.indexOf('tidak masuk') !== -1 ||
+          cloudKetLower.indexOf('alpha') !== -1 ||
+          cloudKetLower.indexOf('alpa') !== -1 ||
+          cloudKetLower.indexOf('tanpa keterangan') !== -1 ||
+          cloudKetLower.indexOf('tidak scan') !== -1 ||
+          cloudKetLower.indexOf('belum scan') !== -1 ||
+          cloudKetPoinLower.indexOf('tidak masuk') !== -1 ||
+          cloudKetPoinLower.indexOf('alpha') !== -1 ||
+          cloudKetPoinLower.indexOf('alpa') !== -1
+        );
         const isPulang = (mode === 'pulang');
+        const isLate = !isTidakScan && !isPulang && (
+          cloudRec.status === 'Terlambat' ||
+          cloudKetLower.indexOf('terlambat') !== -1 ||
+          cloudKetLower.indexOf('kesiangan') !== -1 ||
+          cloudKetLower.indexOf('telat') !== -1
+        );
 
         let recStatus = 'Tepat Waktu';
         let recType = 'Hadir';
         let recKet = 'Tepat Waktu';
         let recPoints = 0;
+        let recTime = cloudRec.time || '07:00:00';
 
         if (isPulang) {
           recStatus = 'Pulang';
@@ -439,7 +498,8 @@ class StorageService {
         } else if (isTidakScan) {
           recStatus = 'Tidak Scan';
           recType = 'Tidak Hadir';
-          recKet = 'Tidak Scan';
+          recKet = cloudRec.keterangan || 'Tidak Scan';
+          recTime = '-';
           recPoints = 0;
         } else if (isLate) {
           recStatus = 'Terlambat';
