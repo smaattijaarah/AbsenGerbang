@@ -121,6 +121,9 @@ class SyncService {
 
           if (result.status === 'success' || result.success) {
             window.storageService.markGasSynced(idsToMark);
+            if (window.firebaseService && window.firebaseService.isConnected) {
+              window.firebaseService.markRecordsSyncedToGas(idsToMark);
+            }
             totalSynced += idsToMark.length;
           } else {
             console.warn('GAS responded with non-success:', result);
