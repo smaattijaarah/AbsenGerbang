@@ -21,7 +21,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
-  <link rel="stylesheet" href="./style.css?v=3.0">
+  <link rel="stylesheet" href="./style.css?v=3.7">
 </head>
 
 <body>
@@ -224,7 +224,7 @@
         <div class="attendance-section-header">
           <div class="title-with-counter" style="display: flex; align-items: center; gap: 8px;">
             <h2 class="attendance-title">Siswa Hadir Hari Ini</h2>
-            <span class="count-bubble" id="countTotal">0</span>
+            <span class="count-bubble" id="countTotal" title="Klik untuk menampilkan semua siswa">0</span>
             <button id="btnRefreshAttendance" type="button" title="Sinkronkan & Muat Ulang Rekapan dari Server"
               style="background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.35); color: #38bdf8; border-radius: 6px; padding: 2px 7px; font-size: 0.92rem; cursor: pointer; transition: all 0.2s; line-height: 1;">
               🔄
@@ -233,24 +233,30 @@
 
           <!-- Ringkasan Singkat: Hadir, Terlambat, Pulang, Tanpa Kartu -->
           <div class="mini-summary">
-            <span class="summary-badge ontime" title="Hadir Tepat Waktu">
+            <span class="summary-badge ontime" id="filterBadgeOnTime" title="Klik untuk memfilter: Hadir Tepat Waktu">
               ✅ <span id="countOnTime">0</span>
             </span>
-            <span class="summary-badge late" title="Terlambat">
+            <span class="summary-badge late" id="filterBadgeLate" title="Klik untuk memfilter: Terlambat">
               ⏰ <span id="countLate">0</span>
             </span>
-            <span class="summary-badge pulang" title="Siswa Pulang"
+            <span class="summary-badge pulang" id="filterBadgePulang" title="Klik untuk memfilter: Siswa Pulang"
               style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3);">
               🏠 <span id="countPulang">0</span>
             </span>
-            <span class="summary-badge without-card" title="Tidak Bawa Kartu">
+            <span class="summary-badge without-card" id="filterBadgeWithoutCard" title="Klik untuk memfilter: Tidak Bawa Kartu">
               ⚠️ <span id="countWithoutCard">0</span>
             </span>
-            <span class="summary-badge tidak-scan" id="badgeTidakScan" title="Tidak Scan"
+            <span class="summary-badge tidak-scan" id="badgeTidakScan" title="Klik untuk memfilter: Tidak Scan"
               style="display: none; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3);">
               ❌ <span id="countTidakScan">0</span>
             </span>
           </div>
+        </div>
+
+        <!-- Indikator Filter Aktif -->
+        <div id="activeFilterChip" class="active-filter-chip hidden">
+          <span>Menampilkan: <strong id="activeFilterLabel">Tepat Waktu</strong> (<span id="activeFilterCount">0</span>)</span>
+          <button id="btnClearFilter" type="button" title="Tampilkan Semua Siswa">✕ Tampilkan Semua</button>
         </div>
 
         <!-- Pencarian Cepat Nama di Riwayat -->
@@ -781,13 +787,13 @@
   <!-- Notification Toast Container -->
   <div id="toastContainer" class="toast-container"></div>
 
-  <!-- Scripts (v3.6 - Firebase Realtime Database Sync) -->
-  <script src="./audio.js?v=3.6"></script>
-  <script src="./storage.js?v=3.6"></script>
-  <script src="./firebase-service.js?v=3.6"></script>
-  <script src="./sync-service.js?v=3.6"></script>
-  <script src="./scanner.js?v=3.6"></script>
-  <script src="./app.js?v=3.6"></script>
+  <!-- Scripts (v3.7 - Category Filter Badges & Realtime Sync) -->
+  <script src="./audio.js?v=3.7"></script>
+  <script src="./storage.js?v=3.7"></script>
+  <script src="./firebase-service.js?v=3.7"></script>
+  <script src="./sync-service.js?v=3.7"></script>
+  <script src="./scanner.js?v=3.7"></script>
+  <script src="./app.js?v=3.7"></script>
 </body>
 
 </html>
