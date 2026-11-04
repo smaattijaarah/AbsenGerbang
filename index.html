@@ -89,6 +89,9 @@
         <span id="headerSyncStatus" class="status-indicator synced" title="Status Sinkronisasi ke Spreadsheet">
           ☁️ <span class="sync-label">Sheets: Siap</span> (<span id="pendingSyncCount">0</span>)
         </span>
+        <span id="headerFirebaseStatus" class="status-indicator hidden" title="Status Realtime Database Firebase">
+          ⚡ <span class="sync-label">Firebase: Live</span>
+        </span>
         <button id="btnSoundToggle" class="btn-header-action" title="Toggle Suara Beep">
           <span id="soundStatusEmoji">🔊</span>
         </button>
@@ -716,19 +719,30 @@
 
         <!-- Tab 4: Firebase -->
         <div id="stFirebase" class="tab-pane">
+          <p class="tab-desc" style="margin-bottom: 14px;">
+            ⚡ <strong>Sinkronisasi Instan 2 Arah Realtime:</strong> Menghubungkan semua akun (petugas piket harian &amp; admin) secara langsung. Begitu petugas hari Rabu scan siswa di pos gerbang, layar Admin langsung ter-update seketika (&lt;0.1 detik).
+          </p>
+          <div id="fbConfigStatusBanner" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; margin-bottom: 14px; font-size: 0.85rem;">
+            <span>Status Sinkronisasi Realtime:</span>
+            <strong id="fbSettingsStatusBadge" style="color: #fbbf24;">Belum Dikonfigurasi</strong>
+          </div>
           <div class="form-group">
             <label for="cfgFbApiKey">Firebase API Key</label>
-            <input type="text" id="cfgFbApiKey" placeholder="AIzaSy...">
+            <input type="text" id="cfgFbApiKey" placeholder="Contoh: AIzaSyBgX3...">
+            <small>Didapat dari Firebase Console &gt; Project Settings &gt; Web API Key.</small>
           </div>
           <div class="form-group">
             <label for="cfgFbDatabaseUrl">Realtime Database URL</label>
-            <input type="text" id="cfgFbDatabaseUrl" placeholder="https://projek-absensi-default-rtdb.firebaseio.com">
+            <input type="text" id="cfgFbDatabaseUrl" placeholder="https://nama-projek-default-rtdb.firebaseio.com">
+            <small>URL Realtime Database (harus berakhiran <code>.firebaseio.com</code> atau region domain).</small>
           </div>
           <div class="form-group">
-            <label for="cfgFbProjectId">Firebase Project ID</label>
-            <input type="text" id="cfgFbProjectId" placeholder="projek-absensi">
+            <label for="cfgFbProjectId">Firebase Project ID (Opsional)</label>
+            <input type="text" id="cfgFbProjectId" placeholder="nama-projek-absensi">
           </div>
-          <button id="btnTestFirebase" class="btn-secondary-action">Test Koneksi Firebase</button>
+          <div style="display: flex; gap: 10px; margin-top: 14px;">
+            <button id="btnTestFirebase" type="button" class="btn-primary-action" style="flex: 1; padding: 10px; font-weight: 700; background: linear-gradient(135deg, #d97706, #b45309);">⚡ Test Koneksi Firebase</button>
+          </div>
         </div>
 
         <!-- Tab 5: Master Data Siswa -->
@@ -767,13 +781,13 @@
   <!-- Notification Toast Container -->
   <div id="toastContainer" class="toast-container"></div>
 
-  <!-- Scripts (v3.5 - Realtime Two-Way Cloud Sync) -->
-  <script src="./audio.js?v=3.5"></script>
-  <script src="./storage.js?v=3.5"></script>
-  <script src="./firebase-service.js?v=3.5"></script>
-  <script src="./sync-service.js?v=3.5"></script>
-  <script src="./scanner.js?v=3.5"></script>
-  <script src="./app.js?v=3.5"></script>
+  <!-- Scripts (v3.6 - Firebase Realtime Database Sync) -->
+  <script src="./audio.js?v=3.6"></script>
+  <script src="./storage.js?v=3.6"></script>
+  <script src="./firebase-service.js?v=3.6"></script>
+  <script src="./sync-service.js?v=3.6"></script>
+  <script src="./scanner.js?v=3.6"></script>
+  <script src="./app.js?v=3.6"></script>
 </body>
 
 </html>
